@@ -4,8 +4,8 @@ Bidirectional routing using datastructures for Clojure and ClojureScript.
 
 ## Motivation
 
-I found the available data-driven, bidirectional routing libraries too hard to use or bloated.
-This library comes close to [tripod](https://github.com/frankiesardo/tripod), but sibiro is a little smaller and does support request-methods.
+I found the available data-driven, bidirectional, macro-less routing libraries too hard to use or bloated.
+This library comes close to [tripod](https://github.com/frankiesardo/tripod), but sibiro is a little smaller and does support request methods.
 Having a routing library based on datastructures and decomplecting route matching and request handling has several [benefits](#benefits).
 
 ## Usage ([API](#coming-soon))
@@ -91,8 +91,62 @@ A voila, a basic request handler using sibiro.
 
 ## Benefits
 
-TODO - Story about separating concerns, the possibilities like [ronda-routing](https://github.com/xsc/ronda-routing) and all that jazz.
-See comment section in `sibiro.extras` namespace for now.
+The reason why using datastructures to define routes are benificial and prefered is made perfectly clear in [this presentation](https://www.youtube.com/watch?v=3oQTSP4FngY).
+Having datastructures makes URI generating (i.e. the _bi_directional support) fairly easy.
+
+The reason why the routes are not bound to a handler per se is also benificial, as it decomplects two concerns: that of route matching and that of request handling.
+This is very well explained in the [sales pitch](https://github.com/xsc/ronda-routing#official-sales-pitch) of the ronda-routing library.
+With that in mind, let's have an example of how sibiro can be used as well: conditional middleware.
+
+As said before, the handler in the route can be any object.
+So it can also be a pair: a function and a set of "behaviours".
+
+```clj
+(def routes (sc/compile-routes
+             [[:get  "/login"     [login-page     #{:public}]]
+              [:post "/login"     [login-handler  #{:public}]]
+              [:get  "/dashboard" [dashboard-page           ]]
+              [:get  "/admin"     [admin-page      #{:admin}]]
+              [:any  "/rest"      [liberator        #{:json}]]]))
+```
+
+Now we write a base handler, that simply takes the first value of the matched route handler and calls it.
+We later wrap this base handler with `sibiro.extras/wrap-routes`, which is why the `:route-handler` key is available in the request.
+
+```clj
+(defn my-route-handler [request]
+  ((first (:route-handler request)) request))
+```
+
+To have conditional middleware, we use middleware that takes a sequence of predicate-wrapper pairs.
+This middleware wraps the given handler with those wrappers for which its predicate (a function that receives the behaviours set of the matched route) returns a truthy value, in the order the are defined.
+
+```clj
+(defn wrap-conditional-middleware [handler middlewares]
+  (fn [request]
+    (let [wrapped (reduce (fn [h [pred wrapper]]
+                            (if (pred (second (:route-handler request)))
+                              (wrapper h)
+                              h))
+                          handler
+                          middlewares)]
+      (wrapped request))))
+```
+
+Now we simply wrap the base handler up, and voila, conditional middleware per route.
+
+```clj
+(-> my-route-handler
+    (wrap-conditional-middleware [[:json                wrap-json]
+                                  [:admin               wrap-admin?]
+                                  [(complement :public) wrap-logged-in?]])
+    (wrap-routes routes))
+```
+
+> NOTE: The downside of this approach is that it wraps the handler with the conditional middleware on each request.
+> Above just serves as an example, more sophisticated approaches are possible (like pre-processing the routes datastructure before compiling).
+
+_As always, have fun!_
 
 ## Contributing
 
