@@ -55,7 +55,7 @@ The values in `:route-params` are URL decoded for you.
 
 ### Generating an URI
 
-Given compiled routes and a handler (or tag), and optionally parameters, the function `uri-for` returns a map with `:uri` and `:query-string`, or nil if the route could not be found.
+Given compiled routes a handler (or tag), and optionally parameters, the function `uri-for` returns a map with `:uri` and `:query-string`, or nil if the route could not be found.
 For example.
 
 ```clj
@@ -66,7 +66,7 @@ For example.
 An exception is thrown if parameters for the URI are missing in the data map.
 The values in the data map are URL encoded for you.
 
-_That's all there is to the core of this library. Read on for some provider extras and possibilities._
+_That's all there is to the core of this library. Read on for some provided extras and possibilities._
 
 ## Provided extras for basic defaults
 
