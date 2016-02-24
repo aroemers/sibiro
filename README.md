@@ -70,11 +70,29 @@ _That's all there is to the core of this library. Read on for some provided extr
 
 ## Provided extras for basic defaults
 
-TODO - See `sibiro.extras` namespace for now.
+The `sibiro.extras` namespace contains some extra functions that can be used to get you up to speed quickly.
+
+### `wrap-routes`
+
+If you want your handler to be unaware of the available routes, but do want the matched route information, you can wrap your handler with `wrap-routes`.
+This middleware takes compiled and uncompiled routes as an argument.
+On an incoming request, it merges the result of `match-uri` of the request with the request, and calls the wrapped handler.
+This way, the wrapped handler receives both `:route-handler` and `:route-params`.
+
+### `route-handler`
+
+A basic handler that uses the information from above `wrap-routes` is the function `route-handler`.
+It assumes the `:route-handler` value is a request handler, and calls that with the request.
+
+### `make-handler`
+
+If all you need is the above basic `route-handler`, you can call `make-handler` with the (compiled or uncompiled) routes, and you get the `route-handler` wrapped with `wrap-routes` back.
+A voila, a basic request handler using sibiro.
 
 ## Benefits
 
-TODO - Story about separating concerns, the possibilities like [ronda-routing](https://github.com/xsc/ronda-routing) and all that jazz. See comment section in `sibiro.extras` namespace for now.
+TODO - Story about separating concerns, the possibilities like [ronda-routing](https://github.com/xsc/ronda-routing) and all that jazz.
+See comment section in `sibiro.extras` namespace for now.
 
 ## Contributing
 
