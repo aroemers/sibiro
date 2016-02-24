@@ -98,7 +98,10 @@ Having datastructures makes URI generating (i.e. the _bi_-directional support) f
 
 The reason why the routes are not bound to a handler per se is also beneficial, as it decomplects two concerns: that of route matching and that of request handling.
 This is very well explained in the [sales pitch](https://github.com/xsc/ronda-routing#official-sales-pitch) of the ronda-routing library.
-With that in mind, let's have an example of how sibiro can be used as well: conditional middleware.
+
+### Example: conditional middleware
+
+With above sales pitch in mind, let's have an example of how sibiro can be used as well: conditional middleware.
 
 As said before, the handler in the route can be any object.
 So it can also be a pair: a function and a set of "behaviours".
@@ -146,7 +149,31 @@ Now we simply wrap the base handler up, and voila, conditional middleware per ro
 ```
 
 > NOTE: The downside of this approach is that it wraps the handler with the conditional middleware on each request.
-> Above just serves as an example, more sophisticated approaches are possible (like pre-processing the routes datastructure before compiling).
+> Above just serves as an example, more sophisticated approaches are possible (like pre-processing the routes datastructure before compiling in the next example).
+
+### Example: pre-process routes
+
+Another advantage of a simple datastructure for routes is that one can easily pre-process them before compiling.
+For example, by wrapping all the handlers.
+
+```clj
+(defn wrap-route-handlers [routes & wrappers]
+  (map (fn [[method path handler tag]]
+         [method path (reduce #(%2 %1) handler wrappers) tag])
+       routes))
+```
+
+Now you can wrap all your routes with, say, an intercepter that checks whether the user is logged in.
+
+```clj
+(def routes
+  (wrap-route-handlers
+   [[:get "/dashboard/"        dashboard-index]
+    [:get "/dashboard/profile" dashboard-user]
+    ...]
+   wrap-logged-in))
+```
+
 
 _As always, have fun!_
 
