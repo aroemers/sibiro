@@ -4,7 +4,8 @@
 
 (defn wrap-routes
   "Wrap a handler with middleware that merges the result of
-  `match-uri` using the given routes on the incoming request."
+  `match-uri` using the given routes on the incoming request. Routes
+  argument can be compiled or uncompiled."
   [handler routes]
   (let [compiled (if (sc/compiled? routes) routes (sc/compile-routes routes))]
     (fn [request]
@@ -19,10 +20,11 @@
   [request]
   (if-let [handler (:route-handler request)]
     (handler request)
-    (throw (IllegalStateException. "The wrapped-handler is not wrapped with wrap-routes."))))
+    {:status 404 :body "Resource not found."}))
 
 (defn make-handler
   "Returns a request handler that is the combination of
-  `route-handler` with `wrap-routes` applied to it."
+  `route-handler` with `wrap-routes` applied to it. Routes argument
+  can be compiled or uncompiled."
   [routes]
   (wrap-routes route-handler routes))
