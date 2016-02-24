@@ -1,8 +1,6 @@
 (ns sibiro.core
   "Simple data-driven request routing for Clojure and ClojureScript."
-  (:require [clojure.set :as set]
-            [clojure.string :as str]
-            #?(:cljs [cljs.js :as cljs])))
+  (:require [clojure.string :as str]))
 
 ;;; URL encoding
 
@@ -58,14 +56,14 @@
            keyset (set (filter keyword? parts))
            data   (gensym)]
        `(fn [~data]
-          (when-let [diff# (seq (set/difference ~keyset (set (keys ~data))))]
+          (when-let [diff# (seq (reduce disj ~keyset (keys ~data)))]
             (throw (ex-info "Missing data for path." {:missing-keys diff#})))
           {:uri          (str ~@(->> (for [part parts]
                                        (if (keyword? part)
                                          `(#'sibiro.core/url-encode (get ~data ~part))
                                          part))
                                      (interpose "/")))
-           :query-string (when-let [keys# (seq (set/difference (set (keys ~data)) ~keyset))]
+           :query-string (when-let [keys# (seq (reduce disj (set (keys ~data)) ~keyset))]
                            (#'sibiro.core/query-string (select-keys ~data keys#)))}))))
 
 #?(:clj
@@ -78,19 +76,23 @@
                        (str/split path #"/"))
            keyset (set (filter keyword? parts))]
        (fn [data]
-         (when-let [diff (seq (set/difference keyset (set (keys data))))]
+         (when-let [diff (seq (reduce disj keyset (keys data)))]
            (throw (ex-info "Missing data for path." {:missing-keys diff})))
          {:uri          (apply str (->> (for [part parts]
                                           (if (keyword? part)
                                             (url-encode (get data part))
                                             part))
                                         (interpose "/")))
-          :query-string (when-let [keys (seq (set/difference (set (keys data)) keyset))]
+          :query-string (when-let [keys (seq (reduce disj (set (keys data)) keyset))]
                           (query-string (select-keys data keys)))}))))
 
-(defn- routes-tags [routes]
+(defn- routes-tags [routes opts]
   (reduce (fn [result [_ path handler tag]]
-            (assoc result (or tag handler) (uri-for-fn path)))
+            (let [uff        (uri-for-fn path)
+                  ufhandler? (not (:uri-for-tagged-only? opts))]
+              (cond-> result
+                tag        (assoc tag uff)
+                ufhandler? (assoc handler uff))))
           {} routes))
 
 
@@ -116,12 +118,18 @@
   route parameters, catch-all (:*) is tried last, and specific request
   methods take precedence over :any.
 
+  Compiling takes some opional keyword arguments:
+
+   :uri-for-tagged-only? - When set to true, only tagged routes are
+     compiled for use with `uri-for` and can only be found by their
+     tag. Defaults to false.
+
   The routes are compiled into a tree structure, for fast matching.
   Functions for creating URIs (`uri-for`) are also precompiled for
   every route."
-  [routes]
+  [routes & {:as opts}]
   {:tree (routes-tree routes)
-   :tags (routes-tags routes)})
+   :tags (routes-tags routes opts)})
 
 (defn match-uri
   "Given compiled routes, an URI and a request-method, returns
@@ -147,8 +155,9 @@
 
   An exception is thrown if parameters for the URI are missing in the
   data map. The values in the data map are URL encoded for you."
-  ([compiled handler]
-   (uri-for compiled handler nil))
-  ([compiled handler data]
-   (when-let [f (get (:tags compiled) handler)]
+  {:arglists '([compiled handler] [compiled tag])}
+  ([compiled obj]
+   (uri-for compiled obj nil))
+  ([compiled obj data]
+   (when-let [f (get (:tags compiled) obj)]
      (f data))))
