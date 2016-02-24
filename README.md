@@ -59,7 +59,7 @@ Given compiled routes a handler (or tag), and optionally parameters, the functio
 For example.
 
 ```clj
-(uri-for routes update-user {:id 42 :name "alice bob"})
+(uri-for compiled update-user {:id 42 :name "alice bob"})
 ;=> {:uri "/admin/user/42", :query-string "?name=alice%20bob"}
 ```
 
