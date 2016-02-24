@@ -2,7 +2,7 @@
   "Simple data-driven request routing for Clojure and ClojureScript."
   (:require [clojure.string :as str]))
 
-;;; URL encoding
+;;; Shared helpers.
 
 (defn- url-encode [string]
   (some-> string str
@@ -15,14 +15,19 @@
           #?(:clj (java.net.URLDecoder/decode "UTF-8")
              :cljs (js/decodeURIComponent))))
 
+(defn- path-parts [path]
+  (map (fn [p] (cond (.startsWith p ":") (keyword (subs p 1))
+                     (= p "*")           :*
+                     :otherwise          p))
+       (str/split path #"/")))
+
 
 ;;; Internals for matching.
 
 (defn- routes-tree [routes]
   (reduce (fn [result [method path handler]]
-            (let [parts (map (fn [p] (if (.startsWith p ":") [(keyword (subs p 1))] p))
-                             (str/split path #"/"))]
-              (assoc-in result (concat parts [method]) handler)))
+            (let [parts (path-parts path)]
+              (assoc-in result (concat parts [[method]]) handler)))
           {}
           routes))
 
@@ -30,13 +35,13 @@
   (if-let [part (first parts)]
     (or (when-let [subtree (get tree part)]
           (match-uri* subtree (rest parts) params method))
-        (some (fn [keyv]
-                (when-not (= keyv [:*])
-                  (match-uri* (get tree keyv) (rest parts) (assoc params (first keyv) part) method)))
-              (filter vector? (keys tree)))
-        (when-let [subtree (get tree [:*])]
+        (some (fn [keyw]
+                (when-not (= keyw :*)
+                  (match-uri* (get tree keyw) (rest parts) (assoc params keyw part) method)))
+              (filter keyword? (keys tree)))
+        (when-let [subtree (get tree :*)]
           (match-uri* subtree nil (assoc params :* (apply str (interpose "/" parts))) method)))
-    (when-let [handler (or (get tree method) (:any tree))]
+    (when-let [handler (or (get tree [method]) (get tree [:any]))]
       {:route-handler handler
        :route-params (zipmap (keys params) (map url-decode (vals params)))})))
 
@@ -50,9 +55,9 @@
        (apply str "?")))
 
 #?(:clj
+   ;; For Clojure, generate a function inlining as much knowlegde as possible.
    (defn- uri-for-fn-form [path]
-     (let [parts  (map (fn [p] (if (.startsWith p ":") (keyword (subs p 1)) p))
-                       (str/split path #"/"))
+     (let [parts  (path-parts path)
            keyset (set (filter keyword? parts))
            data   (gensym)]
        `(fn [~data]
@@ -71,9 +76,11 @@
      (eval (uri-for-fn-form path))))
 
 #?(:cljs
+   ;; For ClojureScript, an ordinary function because evaluation is
+   ;; still somewhat hard (for me as an unexperienced ClojureScript
+   ;; developer).
    (defn- uri-for-fn [path]
-     (let [parts  (map (fn [p] (if (.startsWith p ":") (keyword (subs p 1)) p))
-                       (str/split path #"/"))
+     (let [parts  (path-parts path)
            keyset (set (filter keyword? parts))]
        (fn [data]
          (when-let [diff (seq (reduce disj keyset (keys data)))]

@@ -10,6 +10,7 @@
               [:post "/post"          :only-post]
               [:get  "/simple/:arg"   :simple-arg]
               [:get  "/simple/:*"     :simple-catch]
+              [:get  "/other/*"       :other-catch]
               [:get  ":*"             :catch-all]]))
 
 (deftest match-uri-test
@@ -40,7 +41,12 @@
   (is (= (match-uri routes "/foo/bar" :get)
          {:route-handler :catch-all
           :route-params {:* "/foo/bar"}})
-      "Match a more generic catch-all."))
+      "Match a more generic catch-all.")
+
+  (is (= (match-uri routes "/other/foo/bar" :get)
+         {:route-handler :other-catch
+          :route-params {:* "foo/bar"}})
+      "Match a keyword-less catch-all, a la clout"))
 
 (deftest uri-for-test
   (is (= (-> (uri-for routes :simple) :uri) "/simple")
