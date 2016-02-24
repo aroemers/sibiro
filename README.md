@@ -91,10 +91,10 @@ A voila, a basic request handler using sibiro.
 
 ## Benefits
 
-The reason why using datastructures to define routes are benificial and prefered is made perfectly clear in [this presentation](https://www.youtube.com/watch?v=3oQTSP4FngY).
+The reason why using datastructures to define routes are beneficial and prefered is made perfectly clear in [this presentation](https://www.youtube.com/watch?v=3oQTSP4FngY).
 Having datastructures makes URI generating (i.e. the _bi_-directional support) fairly easy.
 
-The reason why the routes are not bound to a handler per se is also benificial, as it decomplects two concerns: that of route matching and that of request handling.
+The reason why the routes are not bound to a handler per se is also beneficial, as it decomplects two concerns: that of route matching and that of request handling.
 This is very well explained in the [sales pitch](https://github.com/xsc/ronda-routing#official-sales-pitch) of the ronda-routing library.
 With that in mind, let's have an example of how sibiro can be used as well: conditional middleware.
 
