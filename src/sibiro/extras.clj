@@ -9,8 +9,7 @@
   (let [compiled (if (sc/compiled? routes) routes (sc/compile-routes routes))]
     (fn [request]
       (if-not (:route-handler request)
-        (let [match (sc/match-uri compiled (:uri request) (:request-method request))]
-          (handler (merge request match)))
+        (handler (merge request (sc/match-uri compiled (:uri request) (:request-method request))))
         (handler request)))))
 
 ;;---TODO Add ring.util.response to this handler?
