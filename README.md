@@ -4,7 +4,7 @@ Bidirectional routing using datastructures for Clojure and ClojureScript.
 
 ## Motivation
 
-I found the available data-driven, bidirectional, macro-less routing libraries too hard to use or bloated.
+The data-driven, bidirectional, macro-less routing libraries that I could find were too hard to use or bloated for my personal taste.
 This library comes close to [tripod](https://github.com/frankiesardo/tripod), but sibiro is a little smaller and does support request methods.
 Having a routing library based on datastructures and decomplecting route matching and request handling has several [benefits](#benefits).
 
