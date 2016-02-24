@@ -162,9 +162,21 @@
 
   An exception is thrown if parameters for the URI are missing in the
   data map. The values in the data map are URL encoded for you."
-  {:arglists '([compiled handler] [compiled tag])}
+  {:arglists '([compiled handler] [compiled handler params]
+               [compiled tag] [compiled tag params])}
   ([compiled obj]
    (uri-for compiled obj nil))
   ([compiled obj data]
    (when-let [f (get (:tags compiled) obj)]
      (f data))))
+
+(defn path-for
+  "Convenience method concatenating :uri and :query-string from
+  `uri-for`."
+  {:arglists '([compiled handler] [compiled handler params]
+               [compiled tag] [compiled tag params])}
+  ([compiled obj]
+   (path-for compiled obj nil))
+  ([compiled obj data]
+   (when-let [{:keys [uri query-string]} (uri-for compiled obj data)]
+     (str uri query-string))))

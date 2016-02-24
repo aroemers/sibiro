@@ -66,6 +66,8 @@ For example.
 An exception is thrown if parameters for the URI are missing in the data map.
 The values in the data map are URL encoded for you.
 
+> NOTE: There is also a convenience function called `path-for` that concatenates the :uri and :query-string from `uri-for`.
+
 _That's all there is to the core of this library. Read on for some provided extras and possibilities._
 
 ## Provided extras for basic defaults
