@@ -8,7 +8,7 @@ I found the available data-driven, bidirectional, macro-less routing libraries t
 This library comes close to [tripod](https://github.com/frankiesardo/tripod), but sibiro is a little smaller and does support request methods.
 Having a routing library based on datastructures and decomplecting route matching and request handling has several [benefits](#benefits).
 
-## Usage ([API](#coming-soon))
+## Usage ([API](https://aroemers.github.io/sibiro/))
 
 Add `[functionalbytes/sibiro "0.1"]` to your dependencies and make sure you have Clojars as one of your repositories.
 
