@@ -163,10 +163,10 @@ For example, by wrapping all the handlers.
        routes))
 ```
 
-Now you can wrap all your routes with, say, an intercepter that checks whether the user is logged in.
+Now you can wrap all or some of your routes with, say, an intercepter that checks whether the user is logged in.
 
 ```clj
-(def routes
+(def protected-routes
   (wrap-route-handlers
    [[:get "/dashboard/"        dashboard-index]
     [:get "/dashboard/profile" dashboard-user]
