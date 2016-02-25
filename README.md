@@ -39,6 +39,7 @@ For example:
 (require '[sibiro.core :refer (compile-routes match-uri uri-for)])
 
 (def compiled (compile-routes routes))
+;=> #sibiro.core.CompiledRoutes@5728466
 ```
 
 ### Matching an URI
@@ -72,7 +73,7 @@ _That's all there is to the core of this library. Read on for some provided extr
 
 ## Provided extras for basic defaults
 
-The `sibiro.extras` namespace contains some extra functions that can be used to get you up to speed quickly.
+The `sibiro.extras` namespace contains some extra functions that can be used to get you up to speed quickly. Note that these extras are Clojure only for now.
 
 ##### `wrap-routes`
 
