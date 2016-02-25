@@ -26,8 +26,13 @@
 
 (defn- routes-tree [routes]
   (reduce (fn [result [method path handler]]
-            (let [parts (path-parts path)]
-              (assoc-in result (concat parts [[method]]) handler)))
+            (let [parts    (path-parts path)
+                  keywords (filter keyword? parts)
+                  in       (map #(cond (= % :*)     :*
+                                       (keyword? %) :arg
+                                       :otherwise   %)
+                                parts)]
+              (update-in result in assoc method {:route-handler handler :route-params keywords})))
           {}
           routes))
 
@@ -35,15 +40,12 @@
   (if-let [part (first parts)]
     (or (when-let [subtree (get tree part)]
           (match-uri* subtree (rest parts) params method))
-        (some (fn [keyw]
-                (when-not (= keyw :*)
-                  (match-uri* (get tree keyw) (rest parts) (assoc params keyw part) method)))
-              (filter keyword? (keys tree)))
+        (when-let [subtree (get tree :arg)]
+          (match-uri* subtree (rest parts) (conj params part) method))
         (when-let [subtree (get tree :*)]
-          (match-uri* subtree nil (assoc params :* (apply str (interpose "/" parts))) method)))
-    (when-let [handler (or (get tree [method]) (get tree [:any]))]
-      {:route-handler handler
-       :route-params (zipmap (keys params) (map url-decode (vals params)))})))
+          (match-uri* subtree nil (conj params (apply str (interpose "/" parts))) method)))
+    (when-let [result (or (get tree method) (get tree :any))]
+      (update-in result [:route-params] zipmap (map url-decode params)))))
 
 
 ;;; Internals for uri creation.
@@ -162,7 +164,7 @@
 
   The values in :route-params are URL decoded for you."
   [compiled uri request-method]
-  (match-uri* (:tree compiled) (str/split uri #"/") {} request-method))
+  (match-uri* (:tree compiled) (str/split uri #"/") [] request-method))
 
 (defn uri-for
   "Given compiled routes and a handler (or tag), and optionally
