@@ -28,13 +28,9 @@
   (reduce (fn [result [method path handler]]
             (let [parts    (path-parts path)
                   keywords (filter keyword? parts)
-                  in       (map #(cond (= % :*)     :*
-                                       (keyword? %) :arg
-                                       :otherwise   %)
-                                parts)]
+                  in       (map #(cond (= % :*) :* (keyword? %) :arg :otherwise %) parts)]
               (update-in result in assoc method {:route-handler handler :route-params keywords})))
-          {}
-          routes))
+          {} routes))
 
 (defn- match-uri* [tree parts params method]
   (if-let [part (first parts)]
