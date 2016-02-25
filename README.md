@@ -29,7 +29,7 @@ For example:
 > NOTE: In clout paths, a `*` can be used to define a catch-all path. In sibiro, this can also be `:*`.
 
 The order in which the routes are specified does not matter.
-Paths with more parts take precedence over shorter paths, exact URI parts take precedence over route parameters, catch-all parameter (*) is tried last, and specific request methods take precedence over `:any`.
+Paths with more parts take precedence over shorter paths, exact URI parts take precedence over route parameters, catch-all parameter (`*`) is tried last, and specific request methods take precedence over `:any`.
 
 To use the routes with the other API functions, they need to be "compiled" using `compile-routes`.
 This transforms above datastructure into faster structures and functions.
@@ -55,7 +55,7 @@ The values in `:route-params` are URL decoded for you.
 
 ### Generating an URI
 
-Given compiled routes a handler (or tag), and optionally parameters, the function `uri-for` returns a map with `:uri` and `:query-string`, or nil if the route could not be found.
+Given compiled routes, a handler (or tag), and optionally parameters, the function `uri-for` returns a map with `:uri` and `:query-string`, or nil if the route could not be found.
 For example.
 
 ```clj
@@ -94,7 +94,7 @@ A voila, a basic request handler using sibiro.
 ## Benefits
 
 The reason why using datastructures to define routes are beneficial and prefered is made perfectly clear in [this presentation](https://www.youtube.com/watch?v=3oQTSP4FngY).
-Having datastructures makes URI generating (i.e. the _bi_-directional support) fairly easy.
+In short, for a routing library using datastructures (instead of macros), it means that URI generating (i.e. the _bi_-directional support) is easy, and routes can be shared, transformed and programmatically generated.
 
 The reason why the routes are not bound to a handler per se is also beneficial, as it decomplects two concerns: that of route matching and that of request handling.
 This is very well explained in the [sales pitch](https://github.com/xsc/ronda-routing#official-sales-pitch) of the ronda-routing library.
@@ -112,7 +112,7 @@ So it can also be a pair: a function and a set of "behaviours".
               [:post "/login"     [login-handler  #{:public}]]
               [:get  "/dashboard" [dashboard-page           ]]
               [:get  "/admin"     [admin-page      #{:admin}]]
-              [:any  "/rest"      [liberator        #{:json}]]]))
+              [:any  "/rest/*     [liberator        #{:json}]]]))
 ```
 
 Now we write a base handler, that simply takes the first value of the matched route handler and calls it.

@@ -125,7 +125,7 @@
   route parameters, catch-all (:*) is tried last, and specific request
   methods take precedence over :any.
 
-  Compiling takes some opional keyword arguments:
+  Compiling takes some optional keyword arguments:
 
    :uri-for-tagged-only? - When set to true, only tagged routes are
      compiled for use with `uri-for` and can only be found by their
