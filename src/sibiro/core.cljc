@@ -77,8 +77,8 @@
 
 #?(:cljs
    ;; For ClojureScript, an ordinary function because evaluation is
-   ;; still somewhat hard (for me as an unexperienced ClojureScript
-   ;; developer).
+   ;; still somewhat hard (for me at least as an unexperienced
+   ;; ClojureScript developer).
    (defn- uri-for-fn [path]
      (let [parts  (path-parts path)
            keyset (set (filter keyword? parts))]
@@ -103,10 +103,23 @@
           {} routes))
 
 
+;;; Routes record
+
+(defrecord CompiledRoutes [tree tags])
+
+#?(:clj
+   (defmethod print-method CompiledRoutes [v ^java.io.Writer w]
+     (.write w (str v))))
+
+#?(:clj
+   (do (alter-meta! #'map->CompiledRoutes assoc :no-doc true)
+       (alter-meta! #'->CompiledRoutes assoc :no-doc true)))
+
+
 ;;; Public API
 
 (defn ^:no-doc compiled? [routes]
-  (contains? routes :tree))
+  (instance? CompiledRoutes routes))
 
 (defn compile-routes
   "Compiles a routes datastructure for use in `match-uri` and
@@ -135,8 +148,8 @@
   Functions for creating URIs (`uri-for`) are also precompiled for
   every route."
   [routes & {:as opts}]
-  {:tree (routes-tree routes)
-   :tags (routes-tags routes opts)})
+  (map->CompiledRoutes {:tree (routes-tree routes)
+                        :tags (routes-tags routes opts)}))
 
 (defn match-uri
   "Given compiled routes, an URI and a request-method, returns
