@@ -192,8 +192,8 @@ We can now wrap things up (literally), to conclude our more complex route handli
 
 (def handler
   (-> my-route-handler
-      wrap-alternatives
-      wrap-routes-alts))
+      (wrap-alternatives)
+      (wrap-routes-alts compiled)))
 ```
 
 Note that our example added static behaviour.
