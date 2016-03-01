@@ -109,9 +109,7 @@ This is very well explained in the [sales pitch](https://github.com/xsc/ronda-ro
 ### Example: conditional middleware
 
 With above sales pitch in mind, let's have an example of how sibiro can be used as well: conditional middleware and external regular expressions for route parameters.
-We could write middleware that wraps the conditional middleware and regular expression guards on the handler on each request.
-This would be the approach when using a non-data-driven routing library.
-But because the routes are just data, they can easily be preprocessed, before compiling them.
+Because the routes are just data, they can easily be preprocessed, before compiling them.
 A nice helper function for this, is the following:
 
 ```clj
@@ -133,13 +131,17 @@ So it can also be a map: a map with a handler function, a map of route parameter
    [:get  "/dashboard"      {:handler dashboard-page                                             }]
    [:get  "/admin"          {:handler admin-page     :behaviours #{:admin}                       }]
    [:post "/admin/user/:id" {:handler admin-user     :behaviours #{:admin}  :regexes {:id #"\d+"}}]
-   [:any  "/rest/*          {:handler liberator      :behaviours #{:json}                       }]]))
+   [:any  "/rest/*"         {:handler liberator      :behaviours #{:json}                       }]]))
 ```
 
 Now lets write the conditional middleware preprocessor.
 
 ```clj
 (defn add-conditional-middleware [middlewares]
+  "The middlewares argument is a sequence of pairs, containing a predicate function
+  and a middleware wrapper function. The predicate receives the :behaviours set of
+  a route. Returns a pre-process wrapper that applies the given middlewares to
+  the route handler when the predicate returns true."
   (fn [{:keys [handler behaviours] :as route}]
     (let [wrapped (reduce (fn [h [pred wrapper]]
                             (cond-> h (pred behaviours) (wrapper h)))
@@ -160,6 +162,8 @@ Now lets write the regular expression guards preprocessor.
 
 ```clj
 (defn add-regex-params [{:keys [handler regexes] :as route}]
+  "Pre-processis a route, by wrapping the handler, by only calling it if all the
+  :regexes of that route match the incoming route parameters."
   (let [wrapped (fn [{:keys [route-params] :as request}]
                   (when (every? (fn [[k v]]
                                   (if-let [re (get regexes k)]
