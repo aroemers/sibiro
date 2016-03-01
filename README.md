@@ -45,6 +45,7 @@ For example:
 ### Matching an URI
 
 Given compiled routes, an URI and a request-method, the function `match-uri` returns a map with `:route-handler` and `:route-params`, or nil if no match was found.
+Note that for a route to match, its inline regular expressions for route parameters need to match as well.
 For example:
 
 ```clj
@@ -54,7 +55,8 @@ For example:
 
 The values in `:route-params` are URL decoded for you.
 
-If you require more than one match, you can use `match-uris`. It yields the same result, with the addition of the `:alternatives` key. The value of that key holds a sequence of maps (the same structure as `match-uri`), beginning with the next best match, and so on.
+If you require more than one match, you can use `match-uris`. It yields the same result, with the addition of the `:alternatives` key.
+The value of that key holds a sequence of maps (the same structure as `match-uri`), beginning with the next best match, and so on.
 
 ### Generating an URI
 
@@ -66,7 +68,7 @@ For example.
 ;=> {:uri "/admin/user/42", :query-string "?name=alice%20bob"}
 ```
 
-An exception is thrown if parameters for the URI are missing in the data map.
+An exception is thrown if parameters for the URI are missing in the data map, or are not matching the inline regular expressions.
 The values in the data map are URL encoded for you.
 
 > NOTE: There is also a convenience function called `path-for` that concatenates the :uri and :query-string from `uri-for`.
@@ -199,6 +201,7 @@ Note that we use `wrap-routes-alts` and `wrap-alternatives` here (explained in t
 
 Note that our example added static behaviour.
 Dynamic behaviour is of course also possible, by wrapping the handler with some middleware based on the incoming request.
+Also note that this is just an example. You don't have to use sibiro in this more complex way, and there are many other interesting ways of combining the basics that sibiro offers.
 
 _As always, have fun!_
 

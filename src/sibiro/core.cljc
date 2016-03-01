@@ -101,7 +101,16 @@
             (throw (ex-info "Missing data for path." {:missing-keys diff#})))
           {:uri          (str ~@(->> (for [part parts]
                                        (if (vector? part)
-                                         `(#'sibiro.core/url-encode (get ~data ~(first part)))
+                                         (if-let [re (second part)]
+                                           `(let [val# (get ~data ~(first part))]
+                                              (if (re-matches ~re val#)
+                                                (#'sibiro.core/url-encode val#)
+                                                (throw (ex-info (str "Parameter " ~(first part)
+                                                                     " value '" val#
+                                                                     "' does not match " ~re)
+                                                                {:regex ~re :key ~(first part)
+                                                                 :value val#}))))
+                                           `(#'sibiro.core/url-encode (get ~data ~(first part))))
                                          part))
                                      (interpose "/")))
            :query-string (when-let [keys# (seq (reduce disj (set (keys ~data)) ~keyset))]
@@ -123,7 +132,16 @@
            (throw (ex-info "Missing data for path." {:missing-keys diff})))
          {:uri          (apply str (->> (for [part parts]
                                           (if (vector? part)
-                                            (url-encode (get data (first part)))
+                                            (let [val (get data (first part))]
+                                              (if-let [re (second part)]
+                                                (if (re-matches re val)
+                                                  (url-encode val)
+                                                  (throw (ex-info (str "Parameter " (first part)
+                                                                       " value '" val
+                                                                       "' does not match " re)
+                                                                  {:regex re :key (first part)
+                                                                   :value val})))
+                                                (url-encode val)))
                                             part))
                                         (interpose "/")))
           :query-string (when-let [keys (seq (reduce disj (set (keys data)) keyset))]

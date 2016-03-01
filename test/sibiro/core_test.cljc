@@ -75,6 +75,10 @@
 
   (is (try (not (uri-for routes :simple-arg))
            (catch #?(:clj Throwable :cljs :default) t true))
-      "Missing arguments throws an exception."))
+      "Missing arguments throws an exception.")
+
+  (is (try (not (uri-for routes :regex {:arg "foobar"}))
+           (catch #?(:clj Throwable :cljs :default) t true))
+      "Illegal arguments throws an exception."))
 
 #?(:cljs (doo-tests 'sibiro.core-test))
