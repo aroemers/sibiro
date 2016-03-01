@@ -15,16 +15,16 @@
           #?(:clj (java.net.URLDecoder/decode "UTF-8")
              :cljs (js/decodeURIComponent))))
 
-(defn- keyword-regex [string]
+(defn- keyword-regex [string start]
   (let [re-start (.indexOf string "{")
         re-stop (.indexOf string "}")]
     (if (<= 0 re-start)
-      [(keyword (subs string 1 re-start)) (re-pattern (subs string (inc re-start) re-stop))]
-      [(keyword (subs string 1)) nil])))
+      [(keyword (subs string start re-start)) (re-pattern (subs string (inc re-start) re-stop))]
+      [(keyword (subs string start)) nil])))
 
 (defn- path-parts [path]
-  (map (fn [p] (cond (.startsWith p ":") (keyword-regex p)
-                     (= p "*")           [:* nil]
+  (map (fn [p] (cond (.startsWith p ":") (keyword-regex p 1)
+                     (.startsWith p "*") (keyword-regex p 0)
                      :otherwise          p))
        (str/split path #"/")))
 
@@ -37,9 +37,11 @@
                   arguments (filter vector? parts)
                   keywords  (map first arguments)
                   regexes   (map second arguments)
-                  in        (map #(cond (= % [:* nil]) :* (vector? %) :arg :otherwise %) parts)]
+                  in        (map #(cond (= (and (vector? %) (first %)) :*) :*
+                                        (vector? %)                        :arg
+                                        :otherwise                         %) parts)]
               (update-in result in assoc method {:route-handler handler :route-params keywords
-                                                 :regexes regexes})))
+                                                 :regexes       regexes})))
           {} routes))
 
 (defn- check-regexes [params regexes]
