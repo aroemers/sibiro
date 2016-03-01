@@ -162,7 +162,7 @@ Now lets write the regular expression guards preprocessor.
 
 ```clj
 (defn add-regex-params [{:keys [handler regexes] :as route}]
-  "Pre-processis a route, by wrapping the handler, by only calling it if all the
+  "Pre-processes a route, by wrapping the handler, by only calling it if all the
   :regexes of that route match the incoming route parameters."
   (let [wrapped (fn [{:keys [route-params] :as request}]
                   (when (every? (fn [[k v]]
@@ -183,6 +183,7 @@ We also need a base handler, that simply takes the `:handler` value of the match
 ```
 
 We can now wrap things up (literally), to conclude our more complex route handling scenario.
+Note that we use `wrap-routes-alts` and `wrap-alternatives` here (explained in the [extras](#provided-extras-for-basic-defaults) section), in order for the regular expression guards to work.
 
 ```clj
 (def compiled
