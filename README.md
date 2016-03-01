@@ -20,13 +20,13 @@ For example:
 
 ```clj
 (def routes
-  [[:get  "/admin/user/"    user-list             ]
-   [:get  "/admin/user/:id" user-get    :user-page]
-   [:post "/admin/user/:id" user-update           ]
-   [:any  "/:*"             handle-404            ]]
+  [[:get  "/admin/user/"          user-list             ]
+   [:get  "/admin/user/:id{\\d+}" user-get    :user-page]
+   [:post "/admin/user/:id{\\d+}" user-update           ]
+   [:any  "/:*"                   handle-404            ]]
 ```
 
-> NOTE: In clout paths, a `*` can be used to define a catch-all path. In sibiro, this can also be `:*`.
+> NOTE: In clout paths, a `*` can be used to define a catch-all path. In sibiro, this can also be `:*`. Inline regular expressions after the route parameter keywords are also supported.
 
 The order in which the routes are specified does not matter.
 Paths with more parts take precedence over shorter paths, exact URI parts take precedence over route parameters, catch-all parameter (`*`) is tried last, and specific request methods take precedence over `:any`.
@@ -54,6 +54,8 @@ For example:
 
 The values in `:route-params` are URL decoded for you.
 
+If you require more than one match, you can use `match-uris`. It yields the same result, with the addition of the `:alternatives` key. The value of that key holds a sequence of maps (the same structure as `match-uri`), beginning with the next best match, and so on.
+
 ### Generating an URI
 
 Given compiled routes, a handler (or tag), and optionally parameters, the function `uri-for` returns a map with `:uri` and `:query-string`, or nil if the route could not be found.
@@ -73,7 +75,7 @@ _That's all there is to the core of this library. Read on for some provided extr
 
 ## Provided extras for basic defaults
 
-The `sibiro.extras` namespace contains some extra functions that can be used to get you up to speed quickly. Note that these extras are Clojure only for now.
+The `sibiro.extras` namespace contains some extra functions that can be used to get you up to speed quickly. Note that these extras are Clojure only for now. Below are some of them.
 
 ##### `wrap-routes`
 
@@ -81,6 +83,9 @@ If you want your handler to be unaware of the available routes, but do want the 
 This middleware takes compiled and uncompiled routes as an argument.
 On an incoming request, it merges the result of `match-uri` of the request with the request, and calls the wrapped handler.
 This way, the wrapped handler receives both `:route-handler` and `:route-params`.
+
+> NOTE: A `wrap-routes-alts` also exists. It works the same as `wrap-routes`, but uses `match-uris` instead of `match-uri`.
+> This can very well be combined with `wrap-alternatives`.
 
 ##### `route-handler`
 
@@ -92,6 +97,7 @@ It assumes the `:route-handler` value is a request handler, and calls that with 
 If all you need is the above basic `route-handler`, you can call `make-handler` with the (compiled or uncompiled) routes, and you get the `route-handler` wrapped with `wrap-routes` back.
 A voila, a basic request handler using sibiro.
 
+
 ## Benefits
 
 The reason why using datastructures to define routes are beneficial and prefered is made perfectly clear in [this presentation](https://www.youtube.com/watch?v=3oQTSP4FngY).
@@ -102,79 +108,92 @@ This is very well explained in the [sales pitch](https://github.com/xsc/ronda-ro
 
 ### Example: conditional middleware
 
-With above sales pitch in mind, let's have an example of how sibiro can be used as well: conditional middleware.
-
-As said before, the handler in the route can be any object.
-So it can also be a pair: a function and a set of "behaviours".
-
-```clj
-(def routes (sc/compile-routes
-             [[:get  "/login"     [login-page     #{:public}]]
-              [:post "/login"     [login-handler  #{:public}]]
-              [:get  "/dashboard" [dashboard-page           ]]
-              [:get  "/admin"     [admin-page      #{:admin}]]
-              [:any  "/rest/*     [liberator        #{:json}]]]))
-```
-
-Now we write a base handler, that simply takes the first value of the matched route handler and calls it.
-We later wrap this base handler with `sibiro.extras/wrap-routes`, which is why the `:route-handler` key is available in the request.
+With above sales pitch in mind, let's have an example of how sibiro can be used as well: conditional middleware and external regular expressions for route parameters.
+We could write middleware that wraps the conditional middleware and regular expression guards on the handler on each request.
+This would be the approach when using a non-data-driven routing library.
+But because the routes are just data, they can easily be preprocessed, before compiling them.
+A nice helper function for this, is the following:
 
 ```clj
-(defn my-route-handler [request]
-  ((first (:route-handler request)) request))
-```
-
-To have conditional middleware, we use middleware that takes a sequence of predicate-wrapper pairs.
-This middleware wraps the given handler with those wrappers for which its predicate (a function that receives the behaviours set of the matched route) returns a truthy value, in the order the are defined.
-
-```clj
-(defn wrap-conditional-middleware [handler middlewares]
-  (fn [request]
-    (let [wrapped (reduce (fn [h [pred wrapper]]
-                            (if (pred (second (:route-handler request)))
-                              (wrapper h)
-                              h))
-                          handler
-                          middlewares)]
-      (wrapped request))))
-```
-
-Now we simply wrap the base handler up, and voila, conditional middleware per route.
-
-```clj
-(-> my-route-handler
-    (wrap-conditional-middleware [[:json                wrap-json]
-                                  [:admin               wrap-admin?]
-                                  [(complement :public) wrap-logged-in?]])
-    (wrap-routes routes))
-```
-
-> NOTE: The downside of this approach is that it wraps the handler with the conditional middleware on each request.
-> Above just serves as an example, more sophisticated approaches are possible (like pre-processing the routes datastructure before compiling in the next example).
-
-### Example: pre-process routes
-
-Another advantage of a simple datastructure for routes is that one can easily pre-process them before compiling.
-For example, by wrapping all the handlers.
-
-```clj
-(defn wrap-route-handlers [routes & wrappers]
+(defn process-route-handlers
+  "Wrap the handler of the given routes by the given wrapper functions."
+  [routes & wrappers]
   (map (fn [[method path handler tag]]
          [method path (reduce #(%2 %1) handler wrappers) tag])
        routes))
 ```
 
-Now you can wrap all or some of your routes with, say, an intercepter that checks whether the user is logged in.
+As said before, the handler in the route can be any object.
+So it can also be a map: a map with a handler function, a map of route parameter regular expressions, and a set of "behaviours".
 
 ```clj
-(def protected-routes
-  (wrap-route-handlers
-   [[:get "/dashboard/"        dashboard-index]
-    [:get "/dashboard/profile" dashboard-user]
-    ...]
-   wrap-logged-in))
+(def routes
+  [[:get  "/login"          {:handler login-page     :behaviours #{:public}                      }]
+   [:post "/login"          {:handler login-handler  :behaviours #{:public}                      }]
+   [:get  "/dashboard"      {:handler dashboard-page                                             }]
+   [:get  "/admin"          {:handler admin-page     :behaviours #{:admin}                       }]
+   [:post "/admin/user/:id" {:handler admin-user     :behaviours #{:admin}  :regexes {:id #"\d+"}}]
+   [:any  "/rest/*          {:handler liberator      :behaviours #{:json}                       }]]))
 ```
 
+Now lets write the conditional middleware preprocessor.
+
+```clj
+(defn add-conditional-middleware [middlewares]
+  (fn [{:keys [handler behaviours] :as route}]
+    (let [wrapped (reduce (fn [h [pred wrapper]]
+                            (cond-> h (pred behaviours) (wrapper h)))
+                          handler middlewares)]
+      (assoc route :handler wrapped))))
+```
+
+For our example, we define some middlewares for our behaviours:
+
+```clj
+(def middlewares
+  [[:json                wrap-json]
+   [:admin               wrap-admin?]
+   [(complement :public) wrap-logged-in?]]
+```
+
+Now lets write the regular expression guards preprocessor.
+
+```clj
+(defn add-regex-params [{:keys [handler regexes] :as route}]
+  (let [wrapped (fn [{:keys [route-params] :as request}]
+                  (when (every? (fn [[k v]]
+                                  (if-let [re (get regexes k)]
+                                    (re-matches re v)
+                                    true))
+                                route-params)
+                    (handler request)))]
+    (assoc route :handler wrapped)))
+```
+
+We also need a base handler, that simply takes the `:handler` value of the matched route handler and calls it.
+
+```clj
+(defn my-route-handler [request]
+  (let [handler (-> request :route-handler :handler)]
+    (handler request)))
+```
+
+We can now wrap things up (literally), to conclude our more complex route handling scenario.
+
+```clj
+(def compiled
+  (-> routes
+      (process-route-handlers (add-conditional-middleware middlewares) add-regex-params)
+      (compile-routes))
+
+(def handler
+  (-> my-route-handler
+      wrap-alternatives
+      wrap-routes-alts))
+```
+
+Note that our example added static behaviour.
+Dynamic behaviour is of course also possible, by wrapping the handler with some middleware based on the incoming request.
 
 _As always, have fun!_
 

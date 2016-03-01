@@ -5,13 +5,14 @@
                        [doo.runner :refer-macros [doo-tests]]])))
 
 (def routes (compile-routes
-             [[:get  "/simple"        :simple]
-              [:any  "/simple"        :simple-any]
-              [:post "/post"          :only-post]
-              [:get  "/simple/:arg"   :simple-arg]
-              [:get  "/simple/:*"     :simple-catch]
-              [:get  "/other/*"       :other-catch]
-              [:get  ":*"             :catch-all]]))
+             [[:get  "/simple"            :simple]
+              [:any  "/simple"            :simple-any]
+              [:post "/post"              :only-post]
+              [:get  "/simple/:arg"       :simple-arg]
+              [:get  "/simple/:*"         :simple-catch]
+              [:get  "/regex/:arg{\\d+}"  :regex]
+              [:get  "/other/*"           :other-catch]
+              [:get  ":*"                 :catch-all]]))
 
 (deftest match-uri-test
   (is (= (-> (match-uri routes "/simple" :get) :route-handler) :simple)
@@ -46,7 +47,17 @@
   (is (= (match-uri routes "/other/foo/bar" :get)
          {:route-handler :other-catch
           :route-params {:* "foo/bar"}})
-      "Match a keyword-less catch-all, a la clout"))
+      "Match a keyword-less catch-all, a la clout")
+
+  (is (= (match-uri routes "/regex/42" :get)
+         {:route-handler :regex
+          :route-params {:arg "42"}})
+      "Match a regex argument.")
+
+  (is (= (match-uri routes "/regex/fail" :get)
+         {:route-handler :catch-all
+          :route-params {:* "/regex/fail"}})
+      "Don't match a failing regex argument."))
 
 (deftest uri-for-test
   (is (= (-> (uri-for routes :simple) :uri) "/simple")

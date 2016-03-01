@@ -15,9 +15,16 @@
           #?(:clj (java.net.URLDecoder/decode "UTF-8")
              :cljs (js/decodeURIComponent))))
 
+(defn- keyword-regex [string]
+  (let [re-start (.indexOf string "{")
+        re-stop (.indexOf string "}")]
+    (if (<= 0 re-start)
+      [(keyword (subs string 1 re-start)) (re-pattern (subs string (inc re-start) re-stop))]
+      [(keyword (subs string 1)) nil])))
+
 (defn- path-parts [path]
-  (map (fn [p] (cond (.startsWith p ":") (keyword (subs p 1))
-                     (= p "*")           :*
+  (map (fn [p] (cond (.startsWith p ":") (keyword-regex p)
+                     (= p "*")           [:* nil]
                      :otherwise          p))
        (str/split path #"/")))
 
@@ -25,12 +32,26 @@
 ;;; Internals for matching.
 
 (defn- routes-tree [routes]
-  (reduce (fn [result [method path handler]]
-            (let [parts    (path-parts path)
-                  keywords (filter keyword? parts)
-                  in       (map #(cond (= % :*) :* (keyword? %) :arg :otherwise %) parts)]
-              (update-in result in assoc method {:route-handler handler :route-params keywords})))
+  (reduce (fn [result [method path handler :as route]]
+            (let [parts     (path-parts path)
+                  arguments (filter vector? parts)
+                  keywords  (map first arguments)
+                  regexes   (map second arguments)
+                  in        (map #(cond (= % [:* nil]) :* (vector? %) :arg :otherwise %) parts)]
+              (update-in result in assoc method {:route-handler handler :route-params keywords
+                                                 :regexes regexes})))
           {} routes))
+
+(defn- check-regexes [params regexes]
+  (loop [params params
+         regexes regexes]
+    (if-let [param (first params)]
+      (if-let [regex (first regexes)]
+        (if (re-matches regex param)
+          (recur (rest params) (rest regexes))
+          false)
+        (recur (rest params) (rest regexes)))
+      true)))
 
 (defn- match-uri* [tree parts params method]
   (if-let [part (first parts)]
@@ -41,7 +62,24 @@
         (when-let [subtree (get tree :*)]
           (match-uri* subtree nil (conj params (apply str (interpose "/" parts))) method)))
     (when-let [result (or (get tree method) (get tree :any))]
-      (update-in result [:route-params] zipmap (map url-decode params)))))
+      (when (check-regexes params (:regexes result))
+        (update-in (dissoc result :regexes) [:route-params] zipmap (map url-decode params))))))
+
+(defn- match-uris* [tree parts params method]
+  (if-let [part (first parts)]
+    (concat (when-let [subtree (get tree part)]
+              (match-uris* subtree (rest parts) params method))
+            (when-let [subtree (get tree :arg)]
+              (match-uris* subtree (rest parts) (conj params part) method))
+            (when-let [subtree (get tree :*)]
+              (match-uris* subtree nil (conj params (apply str (interpose "/" parts))) method)))
+    (concat
+     (when-let [result (get tree method)]
+       (when (check-regexes params (:regexes result))
+         [(update-in (dissoc result :regexes) [:route-params] zipmap (map url-decode params))]))
+     (when-let [result (get tree :any)]
+       (when (check-regexes params (:regexes result))
+         [(update-in (dissoc result :regexes) [:route-params] zipmap (map url-decode params))])))))
 
 
 ;;; Internals for uri creation.
@@ -56,14 +94,14 @@
    ;; For Clojure, generate a function inlining as much knowlegde as possible.
    (defn- uri-for-fn-form [path]
      (let [parts  (path-parts path)
-           keyset (set (filter keyword? parts))
+           keyset (set (map first (filter vector? parts)))
            data   (gensym)]
        `(fn [~data]
           (when-let [diff# (seq (reduce disj ~keyset (keys ~data)))]
             (throw (ex-info "Missing data for path." {:missing-keys diff#})))
           {:uri          (str ~@(->> (for [part parts]
-                                       (if (keyword? part)
-                                         `(#'sibiro.core/url-encode (get ~data ~part))
+                                       (if (vector? part)
+                                         `(#'sibiro.core/url-encode (get ~data ~(first part)))
                                          part))
                                      (interpose "/")))
            :query-string (when-let [keys# (seq (reduce disj (set (keys ~data)) ~keyset))]
@@ -79,13 +117,13 @@
    ;; ClojureScript developer).
    (defn- uri-for-fn [path]
      (let [parts  (path-parts path)
-           keyset (set (filter keyword? parts))]
+           keyset (set (map first (filter vector? parts)))]
        (fn [data]
          (when-let [diff (seq (reduce disj keyset (keys data)))]
            (throw (ex-info "Missing data for path." {:missing-keys diff})))
          {:uri          (apply str (->> (for [part parts]
-                                          (if (keyword? part)
-                                            (url-encode (get data part))
+                                          (if (vector? part)
+                                            (url-encode (get data (first part)))
                                             part))
                                         (interpose "/")))
           :query-string (when-let [keys (seq (reduce disj (set (keys data)) keyset))]
@@ -161,6 +199,15 @@
   The values in :route-params are URL decoded for you."
   [compiled uri request-method]
   (match-uri* (:tree compiled) (str/split uri #"/") [] request-method))
+
+(defn match-uris
+  "Same as `match-uri`, but the return value also contains
+  an `:alternatives` key. The value is a seqence of `match-uri`
+  results that would be the next best match, and the match thereafter,
+  etc."
+  [compiled uri request-method]
+  (let [result (match-uris* (:tree compiled) (str/split uri #"/") [] request-method)]
+    (assoc (first result) :alternatives (next result))))
 
 (defn uri-for
   "Given compiled routes and a handler (or tag), and optionally
