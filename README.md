@@ -190,7 +190,7 @@ We also need a base handler, that simply takes the `:handler` value of the match
 ```
 
 We can now wrap things up (literally), to conclude our more complex route handling scenario.
-Note that we use `wrap-routes-alts` and `wrap-alternatives` here (explained in the [extras](#provided-extras-for-basic-defaults) section), in order for the regular expression guards to work.
+Note that we use `wrap-routes-alts` and `wrap-try-alts` here (explained in the [extras](#provided-extras-for-basic-defaults) section), in order for the regular expression guards to work.
 
 ```clj
 (def compiled
@@ -200,7 +200,7 @@ Note that we use `wrap-routes-alts` and `wrap-alternatives` here (explained in t
 
 (def handler
   (-> my-route-handler
-      (wrap-alternatives)
+      (wrap-try-alts)
       (wrap-routes-alts compiled)))
 ```
 
