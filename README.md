@@ -113,9 +113,9 @@ In short, for a routing library using datastructures (instead of macros), it mea
 The reason why the routes are not bound to a handler per se is also beneficial, as it decomplects two concerns: that of route matching and that of request handling.
 This is very well explained in the [sales pitch](https://github.com/xsc/ronda-routing#official-sales-pitch) of the ronda-routing library.
 
-### Example: conditional middleware
+### Example of more intricate use of sibiro basics
 
-With above sales pitch in mind, let's have an example of how sibiro can be used as well: conditional middleware and external regular expressions for route parameters.
+With above sales pitch in mind, let's have an example of how sibiro can be used as well: **static conditional middleware and external regular expressions for route parameters**.
 Because the routes are just data, they can easily be preprocessed, before compiling them.
 A nice helper function for this, is the following:
 
