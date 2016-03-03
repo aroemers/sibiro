@@ -136,7 +136,8 @@ So it can also be a map: a map with a handler function, a map of route parameter
    [:get  "/dashboard"      {:handler dashboard-page                                             }]
    [:get  "/admin"          {:handler admin-page     :behaviours #{:admin}                       }]
    [:post "/admin/user/:id" {:handler admin-user     :behaviours #{:admin}  :regexes {:id #"\d+"}}]
-   [:any  "/rest/*"         {:handler liberator      :behaviours #{:json}                       }]]))
+   [:any  "/rest/*"         {:handler liberator      :behaviours #{:json}                        }]
+   [:any  "/rest/admin/*"   {:handler liberadmin     :behaviours #{:admin :json}                 }]])
 ```
 
 Now lets write the conditional middleware preprocessor.
