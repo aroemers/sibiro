@@ -57,31 +57,21 @@
 
 (defn- match-uri* [tree parts params method]
   (if-let [part (first parts)]
-    (or (when-let [subtree (get tree part)]
-          (match-uri* subtree (rest parts) params method))
-        (when-let [subtree (get tree :arg)]
-          (match-uri* subtree (rest parts) (conj params part) method))
-        (when-let [subtree (get tree :*)]
-          (match-uri* subtree nil (conj params (apply str (interpose "/" parts))) method)))
-    (when-let [result (or (get tree method) (get tree :any))]
-      (when (check-regexes params (:regexes result))
-        (update-in (dissoc result :regexes) [:route-params] zipmap (map url-decode params))))))
-
-(defn- match-uris* [tree parts params method]
-  (if-let [part (first parts)]
-    (concat (when-let [subtree (get tree part)]
-              (match-uris* subtree (rest parts) params method))
-            (when-let [subtree (get tree :arg)]
-              (match-uris* subtree (rest parts) (conj params part) method))
-            (when-let [subtree (get tree :*)]
-              (match-uris* subtree nil (conj params (apply str (interpose "/" parts))) method)))
-    (concat
-     (when-let [result (get tree method)]
-       (when (check-regexes params (:regexes result))
-         [(update-in (dissoc result :regexes) [:route-params] zipmap (map url-decode params))]))
-     (when-let [result (get tree :any)]
-       (when (check-regexes params (:regexes result))
-         [(update-in (dissoc result :regexes) [:route-params] zipmap (map url-decode params))])))))
+    (lazy-seq
+     (concat (when-let [subtree (get tree part)]
+               (match-uri* subtree (rest parts) params method))
+             (when-let [subtree (get tree :arg)]
+               (match-uri* subtree (rest parts) (conj params part) method))
+             (when-let [subtree (get tree :*)]
+               (match-uri* subtree nil (conj params (apply str (interpose "/" parts))) method))))
+    (lazy-seq
+     (concat
+      (when-let [result (get tree method)]
+        (when (check-regexes params (:regexes result))
+          [(update-in (dissoc result :regexes) [:route-params] zipmap (map url-decode params))]))
+      (when-let [result (get tree :any)]
+        (when (check-regexes params (:regexes result))
+          [(update-in (dissoc result :regexes) [:route-params] zipmap (map url-decode params))]))))))
 
 
 ;;; Internals for uri creation.
@@ -207,25 +197,22 @@
 
 (defn match-uri
   "Given compiled routes, an URI and a request-method, returns
-  {:route-handler handler, :route-params {...} for a match, or nil.
-  For example:
+  {:route-handler handler, :route-params {...}, :alternatives (...)}
+  for a match, or nil. For example:
 
-  (match-uri (compile-routes [[:post \"/admin/user/:id\" :update-user]])
+  (match-uri (compile-routes [[:post \"/admin/user/:id\" :update-user]
+                              [:post \"/admin/*\"        :admin-catch]])
              \"/admin/user/42\" :post)
   ;=> {:route-handler :update-user, :route-params {:id \"42\"}
+       :alternatives ({:route-handler :admin-catch, :route-params {:* \"user/42\"}})}
 
-  The values in :route-params are URL decoded for you."
+  The values in :route-params are URL decoded for you.
+  The :alternatives value is lazy, so it won't search for alternatives
+  if you don't ask for it."
   [compiled uri request-method]
-  (match-uri* (:tree compiled) (str/split uri #"/") [] request-method))
-
-(defn match-uris
-  "Same as `match-uri`, but the return value also contains
-  an `:alternatives` key. The value is a seqence of `match-uri`
-  results that would be the next best match, and the match thereafter,
-  etc."
-  [compiled uri request-method]
-  (let [result (match-uris* (:tree compiled) (str/split uri #"/") [] request-method)]
-    (assoc (first result) :alternatives (next result))))
+  (let [result (match-uri* (:tree compiled) (str/split uri #"/") [] request-method)]
+    (when (seq result)
+      (assoc (first result) :alternatives (rest result)))))
 
 (defn uri-for
   "Given compiled routes and a handler (or tag), and optionally

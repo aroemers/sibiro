@@ -44,19 +44,19 @@ For example:
 
 ### Matching an URI
 
-Given compiled routes, an URI and a request-method, the function `match-uri` returns a map with `:route-handler` and `:route-params`, or nil if no match was found.
+Given compiled routes, an URI and a request-method, the function `match-uri` returns a map with `:route-handler`, `:route-params` and a lazy `:alternatives`, or nil if no match was found.
 Note that for a route to match, its inline regular expressions for route parameters need to match as well.
 For example:
 
 ```clj
 (match-uri compiled "/admin/user/42" :post)
-;=> {:route-handler update-user, :route-params {:id "42"}
+;=> {:route-handler update-user,
+     :route-params {:id "42"},
+     :alternatives ({:route-handler handle-404, :route-params {:* "admin/user/42"}})}
 ```
 
 The values in `:route-params` are URL decoded for you.
-
-If you require more than one match, you can use `match-uris`. It yields the same result, with the addition of the `:alternatives` key.
-The value of that key holds a sequence of maps (the same structure as `match-uri`), beginning with the next best match, and so on.
+The value of `:alternatives` is lazy, so it won't search for alternatives if not requested.
 
 ### Generating an URI
 
@@ -82,27 +82,25 @@ Note that these extras are Clojure only for now. Below are some of them.
 
 ##### `wrap-routes`
 
-If you want your handler to be unaware of the available routes, but do want the matched route information, you can wrap your handler with `wrap-routes`.
 This middleware takes compiled and uncompiled routes as an argument.
 On an incoming request, it merges the result of `match-uri` of the request with the request, and calls the wrapped handler.
-This way, the wrapped handler receives both `:route-handler` and `:route-params`.
+This way, the wrapped handler receives both `:route-handler` and `:route-params`, if a match was found.
 
-> NOTE: A `wrap-routes-alts` also exists.
-> It works the same as `wrap-routes`, but uses `match-uris` instead of `match-uri`.
-> This can very well be combined with `wrap-try-alts`, trying each alternative until a non-nil response is returned.
+##### `wrap-try-alts`
+
+This wraps the handler by merging in each entry from the `:alternatives` in the request one by one, until a non-nil response is given from the handler.
+The first time the request is passed as is to the handler.
 
 ##### `route-handler`
 
-A basic handler that uses the information from above `wrap-routes` is the function `route-handler`.
+A basic handler that uses the information from above `wrap-routes`.
 It assumes the `:route-handler` value is a request handler, and calls that with the request.
+If no `:route-handler` is available, a 404 response is returned.
 
 ##### `make-handler`
 
-If all you need is the above basic `route-handler`, you can call `make-handler` with the (compiled or uncompiled) routes, and you get the `route-handler` wrapped with `wrap-routes` back.
+If all you need is the above basic `route-handler`, you can call `make-handler` with the (compiled or uncompiled) routes, and you get the `route-handler` wrapped with `wrap-try-alts` and `wrap-routes` back.
 A voila, a basic request handler using sibiro.
-
-> NOTE: A `make-handler-alts` also exists.
-> It wraps `route-handler` with `wrap-try-alts` and `wrap-routes-alts`.
 
 
 ## Benefits
@@ -189,24 +187,21 @@ We also need a base handler, that simply takes the `:handler` value of the match
     (handler request)))
 ```
 
-We can now wrap things up (literally), to conclude our more complex route handling scenario.
-Note that we use `wrap-routes-alts` and `wrap-try-alts` here (explained in the [extras](#provided-extras-for-basic-defaults) section), in order for the regular expression guards to work.
+We can now wrap things up (literally), to conclude our more intricate route handling scenario.
 
 ```clj
 (def compiled
   (-> routes
       (process-route-handlers (add-conditional-middleware middlewares) add-regex-params)
-      (compile-routes))
+      compile-routes))
 
 (def handler
-  (-> my-route-handler
-      (wrap-try-alts)
-      (wrap-routes-alts compiled)))
+  (-> my-route-handler wrap-try-alts (wrap-routes compiled)))
 ```
 
 Note that our example added static behaviour.
 Dynamic behaviour is of course also possible, by wrapping the handler with some middleware based on the incoming request.
-Also note that this is just an example. You don't have to use sibiro in this more complex way, and there are many other interesting ways of combining the basics that sibiro offers.
+Also note that this is just an example. You don't have to use sibiro in this more involved way, and there are many other interesting ways of combining the basics that sibiro offers.
 
 _As always, have fun!_
 

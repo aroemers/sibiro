@@ -14,6 +14,9 @@
               [:get  "/other/*"           :other-catch]
               [:get  ":*"                 :catch-all]]))
 
+(defn match-single-uri [routes uri verb]
+  (dissoc (match-uri routes uri verb) :alternatives))
+
 (deftest match-uri-test
   (is (= (-> (match-uri routes "/simple" :get) :route-handler) :simple)
       "Match a simple plain route and specific request method takes precedence over :any.")
@@ -21,43 +24,52 @@
   (is (= (-> (match-uri routes "/simple" :post) :route-handler) :simple-any)
       "Match an :any route.")
 
-  (is (= (match-uri routes "/post" :put) nil)
+  (is (= (match-single-uri routes "/post" :put) nil)
       "Don't match a different request method.")
 
-  (is (= (match-uri routes "/simple/42" :get)
+  (is (= (match-single-uri routes "/simple/42" :get)
          {:route-handler :simple-arg
           :route-params {:arg "42"}})
       "Match with an argument.")
 
-  (is (= (match-uri routes "/simple/space%20test" :get)
+  (is (= (match-single-uri routes "/simple/space%20test" :get)
          {:route-handler :simple-arg
           :route-params {:arg "space test"}})
       "Arguments are URL decoded.")
 
-  (is (= (match-uri routes "/simple/foo/bar" :get)
+  (is (= (match-single-uri routes "/simple/foo/bar" :get)
          {:route-handler :simple-catch
           :route-params {:* "foo/bar"}})
       "Match a more specific catch-all.")
 
-  (is (= (match-uri routes "/foo/bar" :get)
+  (is (= (match-single-uri routes "/foo/bar" :get)
          {:route-handler :catch-all
           :route-params {:* "/foo/bar"}})
       "Match a more generic catch-all.")
 
-  (is (= (match-uri routes "/other/foo/bar" :get)
+  (is (= (match-single-uri routes "/other/foo/bar" :get)
          {:route-handler :other-catch
           :route-params {:* "foo/bar"}})
       "Match a keyword-less catch-all, a la clout")
 
-  (is (= (match-uri routes "/regex/42" :get)
+  (is (= (match-single-uri routes "/regex/42" :get)
          {:route-handler :regex
           :route-params {:arg "42"}})
       "Match a regex argument.")
 
-  (is (= (match-uri routes "/regex/fail" :get)
+  (is (= (match-single-uri routes "/regex/fail" :get)
          {:route-handler :catch-all
           :route-params {:* "/regex/fail"}})
-      "Don't match a failing regex argument."))
+      "Don't match a failing regex argument.")
+
+  (let [match (match-uri routes "/simple/42" :get)]
+    (is (not (realized? (:alternatives match))) "Alternatives is lazy")
+    (is (= (:alternatives match)
+           [{:route-handler :simple-catch
+             :route-params {:* "42"}}
+            {:route-handler :catch-all
+             :route-params {:* "/simple/42"}}])
+        "Alternatives found")))
 
 (deftest uri-for-test
   (is (= (-> (uri-for routes :simple) :uri) "/simple")
