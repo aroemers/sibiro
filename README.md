@@ -77,7 +77,8 @@ _That's all there is to the core of this library. Read on for some provided extr
 
 ## Provided extras for basic defaults
 
-The `sibiro.extras` namespace contains some extra functions that can be used to get you up to speed quickly. Note that these extras are Clojure only for now. Below are some of them.
+The `sibiro.extras` namespace contains some extra functions that can be used to get you up to speed quickly.
+Note that these extras are Clojure only for now. Below are some of them.
 
 ##### `wrap-routes`
 
@@ -86,8 +87,9 @@ This middleware takes compiled and uncompiled routes as an argument.
 On an incoming request, it merges the result of `match-uri` of the request with the request, and calls the wrapped handler.
 This way, the wrapped handler receives both `:route-handler` and `:route-params`.
 
-> NOTE: A `wrap-routes-alts` also exists. It works the same as `wrap-routes`, but uses `match-uris` instead of `match-uri`.
-> This can very well be combined with `wrap-alternatives`.
+> NOTE: A `wrap-routes-alts` also exists.
+> It works the same as `wrap-routes`, but uses `match-uris` instead of `match-uri`.
+> This can very well be combined with `wrap-try-alts`, trying each alternative until a non-nil response is returned.
 
 ##### `route-handler`
 
@@ -98,6 +100,9 @@ It assumes the `:route-handler` value is a request handler, and calls that with 
 
 If all you need is the above basic `route-handler`, you can call `make-handler` with the (compiled or uncompiled) routes, and you get the `route-handler` wrapped with `wrap-routes` back.
 A voila, a basic request handler using sibiro.
+
+> NOTE: A `make-handler-alts` also exists.
+> It wraps `route-handler` with `wrap-try-alts` and `wrap-routes-alts`.
 
 
 ## Benefits
