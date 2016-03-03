@@ -5,7 +5,9 @@
 (defn wrap-routes
   "Wrap a handler with middleware that merges the result of
   `match-uri` using the given routes on the incoming request. Routes
-  argument can be compiled or uncompiled."
+  argument can be compiled or uncompiled. If request already contains
+  a `:route-handler` key, matching is skipped, and the request is
+  passed to the wrapped handler unchanged."
   [handler routes]
   (let [compiled (if (sc/compiled? routes) routes (sc/compile-routes routes))]
     (fn [request]
@@ -37,4 +39,4 @@
   `route-handler` with `wrap-try-alts` and `wrap-routes` applied to
   it. Routes argument can be compiled or uncompiled."
   [routes]
-  (-> route-handler wrap-try-alts (wrap-routes-alts routes)))
+  (-> route-handler wrap-try-alts (wrap-routes routes)))
