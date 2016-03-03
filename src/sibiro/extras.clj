@@ -2,26 +2,25 @@
   "Clojure extras for sibiro."
   (:require [sibiro.core :as sc]))
 
+(defn- wrap-routes* [handler routes match-fn]
+  (let [compiled (if (sc/compiled? routes) routes (sc/compile-routes routes))]
+    (fn [request]
+      (if-not (:route-handler request)
+        (handler (merge request (match-fn compiled (:uri request) (:request-method request))))
+        (handler request)))))
+
 (defn wrap-routes
   "Wrap a handler with middleware that merges the result of
   `match-uri` using the given routes on the incoming request. Routes
   argument can be compiled or uncompiled."
   [handler routes]
-  (let [compiled (if (sc/compiled? routes) routes (sc/compile-routes routes))]
-    (fn [request]
-      (if-not (:route-handler request)
-        (handler (merge request (sc/match-uri compiled (:uri request) (:request-method request))))
-        (handler request)))))
+  (wrap-routes* handler routes sc/match-uri))
 
 (defn wrap-routes-alts
   "Same as wrap-routes, but uses `match-uris` instead of `match-uri`
   internally."
   [handler routes]
-  (let [compiled (if (sc/compiled? routes) routes (sc/compile-routes routes))]
-    (fn [request]
-      (if-not (:route-handler request)
-        (handler (merge request (sc/match-uris compiled (:uri request) (:request-method request))))
-        (handler request)))))
+  (wrap-routes* handler routes sc/match-uris))
 
 (defn route-handler
   "A handler that calls the :route-handler of a request that went
