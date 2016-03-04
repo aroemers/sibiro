@@ -150,7 +150,7 @@ Now lets write the conditional middleware preprocessor.
   the route handler when the predicate returns true."
   (fn [{:keys [handler behaviours] :as route}]
     (let [wrapped (reduce (fn [h [pred wrapper]]
-                            (cond-> h (pred behaviours) (wrapper h)))
+                            (cond-> h (pred behaviours) wrapper))
                           handler middlewares)]
       (assoc route :handler wrapped))))
 ```
