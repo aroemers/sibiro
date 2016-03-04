@@ -110,6 +110,8 @@ In short, for a routing library using datastructures (instead of macros), it mea
 
 The reason why the routes are not bound to a handler per se is also beneficial, as it decomplects two concerns: that of route matching and that of request handling.
 This is very well explained in the [sales pitch](https://github.com/xsc/ronda-routing#official-sales-pitch) of the ronda-routing library.
+What's more, with sibiro you only need to know core Clojure to add interesting behaviour to your routes and route handling; there are no extension points or type systems to learn.
+The example below shows this as well.
 
 ### Example of more intricate use of sibiro basics
 
