@@ -1,4 +1,4 @@
-# sibiro
+![logo](doc/logo.png)
 
 Bidirectional routing using datastructures for Clojure and ClojureScript.
 
