@@ -10,15 +10,6 @@
                            :otherwise                       [{} args])]
     [(with-meta name (merge (meta name) attrs)) args]))
 
-(defn- with-params-lookup [reqsym ormap asserts sym]
-  `(or ~@(remove nil?
-                 [`(some-> ~reqsym :route-params ~(keyword sym))
-                  `(some-> ~reqsym :params ~(keyword sym))
-                  `(some-> ~reqsym :params (get ~(str sym)))
-                  (or (get ormap sym)
-                      (when (asserts sym)
-                        `(throw (ex-info ~(str "with-params assertion not met: " sym " not found")
-                                         {:binding '~sym}))))])))
 
 ;;; Main macro
 
@@ -32,18 +23,16 @@
   request. Instead of a symbol, a destructuring expression can also be
   specified.
 
-  - Prepending a map with :or defines default values.
-
-  - Prepending a sequence with :assert will assert that the symbols in
-  the sequence are found. Instead of a sequence, you can also set it
-  to :all.
+  - Prepending a map with :or defines default values. If no default
+  value is specified, and the binding cannot be found in the request
+  parameters, an exception is thrown. It basically asserts for your
+  that all parameters are found or at least have a value.
 
   For example:
 
   (fn [req]
     (with-params [name email password
                   :or {name \"Anonymous\"}
-                  :assert (email password)
                   :as {:keys [uri]}] req
       ...))"
   [bindings reqsym & body]
@@ -56,20 +45,18 @@
                                 [nil nil nil]
                                 bindings)
         assym (:as specials (gensym "request-"))
-        ormap (:or specials)
-        asserts (if (= (:assert specials) :all)
-                  (set syms)
-                  (set (:assert specials)))]
-    (assert (every? symbol? syms)            "bindings can only be symbols or special keywords")
-    (assert (every? #{:as :or :assert}
-                    (keys specials))         "supported binding keywords are :or, :as and :assert")
-    (assert (or (nil? ormap) (map? ormap))   "binding for :or must be a map")
-    (assert (every? (set syms) (keys ormap)) "keys in :or map must be subset of binding symbols")
-    (assert (every? symbol? asserts)         "assert list can only hold symbols")
-    (assert (every? (set syms) asserts)      "symbols in :assert list must be subset of bindings")
+        ormap (:or specials)]
+    (assert (every? symbol? syms)               "bindings can only be symbols or special keywords")
+    (assert (every? #{:as :or} (keys specials)) "supported binding keywords are :or, :as and :assert")
+    (assert (or (nil? ormap) (map? ormap))      "binding for :or must be a map")
+    (assert (every? (set syms) (keys ormap))    "keys in :or map must be subset of binding symbols")
     `(let [~assym ~reqsym
            ~@(for [sym syms
-                   form [sym (with-params-lookup reqsym ormap asserts sym)]]
+                   form [sym `(or (some-> ~reqsym :route-params ~(keyword sym))
+                                  (some-> ~reqsym :params ~(keyword sym))
+                                  (some-> ~reqsym :params (get ~(str sym)))
+                                  (throw (ex-info ~(str "param not found: " sym " not found")
+                                                  {:binding '~sym})))]]
                form)]
        ~@body)))
 
