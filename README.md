@@ -2,11 +2,13 @@
 
 Bidirectional routing using datastructures for Clojure and ClojureScript.
 
+
 ## Motivation
 
 The data-driven, bidirectional, macro-less routing libraries that I could find were too hard to use or bloated for my personal taste.
 This library comes close to [tripod](https://github.com/frankiesardo/tripod), but sibiro is a little smaller and does support request methods.
 Having a routing library based on datastructures and decomplecting route matching and request handling has several [benefits](#benefits).
+
 
 ## Usage ([API](https://aroemers.github.io/sibiro/))
 
@@ -101,6 +103,11 @@ If no `:route-handler` is available, a 404 response is returned.
 
 If all you need is the above basic `route-handler`, you can call `make-handler` with the (compiled or uncompiled) routes, and you get the `route-handler` wrapped with `wrap-try-alts` and `wrap-routes` back.
 A voila, a basic request handler using sibiro.
+
+##### `with-params`
+
+A convenience macro yielding a function that takes a ring request, and binds the given binding symbols to the corresponding value in `:route-params` or `:params` from the request.
+See docstring for more info.
 
 
 ## Benefits
