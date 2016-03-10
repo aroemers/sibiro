@@ -20,15 +20,15 @@ For example:
 
 ```clj
 (def routes
-  [[:get  "/admin/user/"          user-list             ]
-   [:get  "/admin/user/:id{\\d+}" user-get    :user-page]
-   [:post "/admin/user/:id{\\d+}" user-update           ]
-   [:any  "/:*"                   handle-404            ]]
+  #{[:get  "/admin/user/"          user-list             ]
+    [:get  "/admin/user/:id{\\d+}" user-get    :user-page]
+    [:post "/admin/user/:id{\\d+}" user-update           ]
+    [:any  "/:*"                   handle-404            ]})
 ```
 
 > NOTE: In clout paths, a `*` can be used to define a catch-all path. In sibiro, this can also be `:*`. Inline regular expressions after the route parameter keywords are also supported.
 
-The order in which the routes are specified does not matter.
+**The order in which the routes are specified does not matter.**
 Paths with more parts take precedence over shorter paths, exact URI parts take precedence over route parameters, catch-all parameter (`*`) is tried last, and specific request methods take precedence over `:any`.
 
 To use the routes with the other API functions, they need to be "compiled" using `compile-routes`.
