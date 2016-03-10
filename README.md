@@ -104,11 +104,6 @@ If no `:route-handler` is available, a 404 response is returned.
 If all you need is the above basic `route-handler`, you can call `make-handler` with the (compiled or uncompiled) routes, and you get the `route-handler` wrapped with `wrap-try-alts` and `wrap-routes` back.
 A voila, a basic request handler using sibiro.
 
-##### `with-params`
-
-A convenience macro yielding a function that takes a ring request, and binds the given binding symbols to the corresponding value in `:route-params` or `:params` from the request.
-See [docstring](https://aroemers.github.io/sibiro/sibiro.extras.html#var-with-params) for more info.
-
 
 ## Benefits
 
