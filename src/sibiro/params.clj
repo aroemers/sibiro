@@ -1,7 +1,6 @@
 (ns sibiro.params
   "Parameter binding request handling.")
 
-
 ;;; Private helpers.
 
 (defn- name-with-attrs [name [arg1 arg2 & argx :as args]]
@@ -25,8 +24,8 @@
 
 (defmacro with-params
   "Macro binding the given symbols around the body to the
-  corresponding values in :route-params or in :params (both keyword as
-  string lookup) in the request. There are also some special keywords
+  corresponding values in :route-params or :params (both keyword as
+  string lookup) from the request. There are also some special keywords
   available:
 
   - Prepending a symbol with :as will bind that symbol with the entire
@@ -45,7 +44,7 @@
     (with-params [name email password
                   :or {name \"Anonymous\"}
                   :assert (email password)
-                  :as request] req
+                  :as {:keys [uri]}] req
       ...))"
   [bindings reqsym & body]
   (let [[syms specials] (reduce (fn [[syms specials keyw] binding]
@@ -78,7 +77,7 @@
 ;;; Convenience macros
 
 (defmacro fnp
-  "Same as `(fn [req] (with-params bindings req ...))`"
+  "Same as `(fn [req] (with-params bindings req body))`"
   [bindings & body]
   `(fn [reqsym#]
      (with-params ~bindings reqsym# ~@body)))
