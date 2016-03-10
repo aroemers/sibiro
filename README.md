@@ -107,7 +107,7 @@ A voila, a basic request handler using sibiro.
 ##### `with-params`
 
 A convenience macro yielding a function that takes a ring request, and binds the given binding symbols to the corresponding value in `:route-params` or `:params` from the request.
-See docstring for more info.
+See [docstring](https://aroemers.github.io/sibiro/sibiro.extras.html#var-with-params) for more info.
 
 
 ## Benefits
