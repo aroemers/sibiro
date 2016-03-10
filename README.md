@@ -108,7 +108,7 @@ A voila, a basic request handler using sibiro.
 The reason why using datastructures to define routes are beneficial and prefered is made perfectly clear in [this presentation](https://www.youtube.com/watch?v=3oQTSP4FngY).
 In short, for a routing library using datastructures (instead of macros), it means that URI generating (i.e. the _bi_-directional support) is easy, and routes can be shared, transformed and programmatically generated.
 
-The reason why the routes are not bound to a handler per se is also beneficial, as it decomplects two concerns: that of route matching and that of request handling.
+The fact that the routes are not bound to a handler per se is also beneficial, as it decomplects two concerns: that of route matching and that of request handling.
 This is very well explained in the [sales pitch](https://github.com/xsc/ronda-routing#official-sales-pitch) of the ronda-routing library.
 What's more, with sibiro you only need to know core Clojure to add interesting behaviour to your routes and route handling; there are no extension points or type systems to learn.
 The example below shows this as well.
