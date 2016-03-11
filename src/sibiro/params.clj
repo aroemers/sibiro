@@ -1,5 +1,5 @@
 (ns sibiro.params
-  "Parameter binding request handling.")
+   "ERPERIMENTAL! EVERYTHING IS SUBJECT TO CHANGE IN THIS NAMESPACE!")
 
 ;;; Private helpers.
 
@@ -25,7 +25,7 @@
 
   - Prepending a map with :or defines default values. If no default
   value is specified, and the binding cannot be found in the request
-  parameters, an exception is thrown. It basically asserts for your
+  parameters, an exception is thrown. It basically asserts for you
   that all parameters are found or at least have a value.
 
   For example:
@@ -81,3 +81,12 @@
   [name & body]
   `(defnp ~(with-meta name (merge (meta name) {:private true}))
      ~@body))
+
+(defmacro defmethodp
+  "Same as `(defmethod name dispatch [req]
+  (with-params bindings req body))`."
+  [name dispatch bindings & body]
+  `(defmethod ~name ~dispatch
+     [request#]
+     (with-params ~bindings request#
+       ~@body)))

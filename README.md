@@ -16,7 +16,7 @@ Add `[functionalbytes/sibiro "0.1"]` to your dependencies and make sure you have
 
 ### Defining routes
 
-A routes structure is a sequence of sequences, with three or four elements.
+A routes structure is a collection of sequences, with three or four elements.
 The request-method, a [clout](https://github.com/weavejester/clout)-like path, a handler (or any object really), and optionally a tag.
 For example:
 
