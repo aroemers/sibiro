@@ -9,6 +9,8 @@ The data-driven, bidirectional, macro-less routing libraries that I could find w
 This library comes close to [tripod](https://github.com/frankiesardo/tripod), but sibiro is a little smaller and does support request methods.
 Having a routing library based on datastructures and decomplecting route matching and request handling has several [benefits](#benefits).
 
+> This [blog post](http://www.functionalbytes.nl/clojure/sibiro/2016/03/14/sibiro.html) introduces sibiro and also explains why it was created.
+
 
 ## Usage ([API](https://aroemers.github.io/sibiro/))
 
