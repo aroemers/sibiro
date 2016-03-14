@@ -12,7 +12,7 @@ Having a routing library based on datastructures and decomplecting route matchin
 
 ## Usage ([API](https://aroemers.github.io/sibiro/))
 
-Add `[functionalbytes/sibiro "0.1"]` to your dependencies and make sure you have Clojars as one of your repositories.
+Add `[functionalbytes/sibiro "0.1.0"]` to your dependencies and make sure you have Clojars as one of your repositories.
 
 ### Defining routes
 
