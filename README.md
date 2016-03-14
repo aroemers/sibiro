@@ -11,6 +11,17 @@ Having a routing library based on datastructures and decomplecting route matchin
 
 > This [blog post](http://www.functionalbytes.nl/clojure/sibiro/2016/03/14/sibiro.html) introduces sibiro and also explains why it was created.
 
+Sibiro is:
+
+* a **simple**, bidirectional routing library
+* using **datastructures** for routes with [clout](https://github.com/weavejester/clout)-like URI patterns.
+* for **Clojure** and **ClojureScript**
+* that **compiles** to **fast matching** structures
+* where the **order** of the routes **does not matter**
+* returns **multiple matches lazily** using strict **precedence rules**
+* **separates routing** and **handling**
+* and provides basic **extras** to get you up to speed quickly
+
 
 ## Usage ([API](https://aroemers.github.io/sibiro/))
 
