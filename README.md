@@ -22,6 +22,8 @@ Sibiro is:
 * **separates routing** and **handling**
 * and provides basic **extras** to get you up to speed quickly
 
+Also, the separate [sibiro-swagger](https://github.com/aroemers/sibiro-swagger) library complements this library.
+
 
 ## Usage ([API](https://aroemers.github.io/sibiro/))
 
