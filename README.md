@@ -7,7 +7,7 @@ Bidirectional routing using datastructures for Clojure and ClojureScript.
 
 The data-driven, bidirectional, macro-less routing libraries that I could find were too hard to use or bloated for my personal taste.
 This library comes close to [clj-routing](https://github.com/mmcgrana/clj-routing), but has slightly different semantics.
-Having a routing library based on datastructures and decomplecting route matching and request handling has several [benefits](example.md).
+Having a routing library based on datastructures and decomplecting route matching and request handling has several [benefits](EXAMPLE.md).
 
 > This [blog post](http://www.functionalbytes.nl/clojure/sibiro/2016/03/14/sibiro.html) introduces sibiro and also explains why it was created.
 
