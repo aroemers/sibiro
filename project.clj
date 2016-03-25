@@ -1,4 +1,4 @@
-(defproject functionalbytes/sibiro "0.1.0"
+(defproject functionalbytes/sibiro "0.1.1"
   :description "Simple bidirectional data-driven request routing for Clojure and ClojureScript"
   :url "https://github.com/aroemers/sibiro"
   :license {:name "Eclipse Public License"
@@ -15,3 +15,5 @@
                                          :optimizations :whitespace}}}}
   :codox {:output-path "doc"}
   :aliases {"test-cljc" ["with-profile" "+test" "do" "test," "doo" "nashorn" "test" "once"]})
+
+add tests
