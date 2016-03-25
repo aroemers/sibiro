@@ -55,8 +55,10 @@
                    form [sym `(or (some-> ~reqsym :route-params ~(keyword sym))
                                   (some-> ~reqsym :params ~(keyword sym))
                                   (some-> ~reqsym :params (get ~(str sym)))
-                                  (throw (ex-info ~(str "param not found: " sym " not found")
-                                                  {:binding '~sym})))]]
+                                  ~(if (contains? ormap sym)
+                                     (get ormap sym)
+                                     `(throw (ex-info ~(str "param not found: " sym)
+                                                      {:binding '~sym}))))]]
                form)]
        ~@body)))
 
