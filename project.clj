@@ -15,5 +15,3 @@
                                          :optimizations :whitespace}}}}
   :codox {:output-path "doc"}
   :aliases {"test-cljc" ["with-profile" "+test" "do" "test," "doo" "nashorn" "test" "once"]})
-
-add tests
