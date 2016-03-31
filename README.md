@@ -31,7 +31,7 @@ Add `[functionalbytes/sibiro "0.1.1"]` to your dependencies and make sure you ha
 ### Defining routes
 
 A routes structure is a collection of sequences, with three or four elements.
-The request-method, a [clout](https://github.com/weavejester/clout)-like path, a handler (or any object really), and optionally a tag.
+The request-method, a [clout](https://github.com/weavejester/clout)-like path, a handler (or any object really), and optionally a tag. The paths are not fully clout compatible, see limitations section.
 For example:
 
 ```clj
@@ -119,6 +119,24 @@ If all you need is the above basic `route-handler`, you can call `make-handler` 
 A voila, a basic request handler using sibiro.
 
 _As always, have fun!_
+
+## Limitations
+
+As explained above, sibiro has the feature that the order of the routes does not matter.
+This does imply two limitations on the clout-like paths of the routes:
+1. Only one route parameter can be used between slashes
+2. Dispatching on a route parameter regular expression does not work for route parameters that are in the "same position", i.e. prefixed by the same path.
+For example, the following two routes structures do not work:
+
+```clj
+;; No support for multiple route parameters in one path part.
+[[:get "/user/:id{\\d+}:fmt{(\\.json|\\.xml)}" :user]]
+
+;; No support for dispatching on route parameters regular
+;; expressions in the same position.
+[[:get "/user/:id{\\d+}"   :user-by-id]
+ [:get "/user/:name{\\.+}" :user-by-name]]
+```
 
 ## Contributing
 
