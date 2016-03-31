@@ -124,8 +124,11 @@ _As always, have fun!_
 
 As explained above, sibiro has the feature that the order of the routes does not matter.
 This does imply two limitations on the clout-like paths of the routes:
+
 1. Only one route parameter can be used between slashes
+
 2. Dispatching on a route parameter regular expression does not work for route parameters that are in the "same position", i.e. prefixed by the same path.
+
 For example, the following two routes structures do not work:
 
 ```clj
