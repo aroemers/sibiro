@@ -31,7 +31,8 @@ Add `[functionalbytes/sibiro "0.1.1"]` to your dependencies and make sure you ha
 ### Defining routes
 
 A routes structure is a collection of sequences, with three or four elements.
-The request-method, a [clout](https://github.com/weavejester/clout)-like path, a handler (or any object really), and optionally a tag. The paths are not fully clout compatible, see limitations section.
+The request-method, a [clout](https://github.com/weavejester/clout)-like path, a handler (or any object really), and optionally a tag.
+Note that the paths are not fully clout compatible, see [limitations](#limitations) section.
 For example:
 
 ```clj
