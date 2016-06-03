@@ -1,4 +1,4 @@
-(defproject functionalbytes/sibiro "0.1.2"
+(defproject functionalbytes/sibiro "0.1.3-SNAPSHOT"
   :description "Simple bidirectional data-driven request routing for Clojure and ClojureScript"
   :url "https://github.com/aroemers/sibiro"
   :license {:name "Eclipse Public License"
