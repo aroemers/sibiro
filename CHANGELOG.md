@@ -1,7 +1,9 @@
 # Change Log
 
-## [Unreleased]
-- No changes yet.
+## [0.1.2] - 2016-06-03
+### Added
+- The `sibiro.extras/route-handler` function can now be configured by
+  using it as a partial function.
 
 
 ## [0.1.1] - 2016-03-25

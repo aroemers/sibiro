@@ -140,6 +140,11 @@ For example, the following two routes structures do not work:
 ;; expressions in the same position.
 [[:get "/user/:id{\\d+}"   :user-by-id]
  [:get "/user/:name{\\.+}" :user-by-name]]
+
+;; The following two routes are the same. The matched handler
+;; will be undeterministic.
+[[:get "/user/:id"   :user-by-id]
+ [:get "/user/:name" :user-by-name]]
 ```
 
 ## Contributing
