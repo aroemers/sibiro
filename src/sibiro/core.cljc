@@ -39,9 +39,12 @@
                   regexes   (map second arguments)
                   in        (map #(cond (= (and (vector? %) (first %)) :*) :*
                                         (vector? %)                        :arg
-                                        :otherwise                         %) parts)]
-              (update-in result in assoc method {:route-handler handler :route-params keywords
-                                                 :regexes       regexes})))
+                                        :otherwise                         %) parts)
+                  handle    {:route-handler handler :route-params keywords
+                             :regexes       regexes}]
+              (if (seq in)
+                (update-in result in assoc method handle)
+                (assoc result method handle))))
           {} routes))
 
 (defn- check-regexes [params regexes]

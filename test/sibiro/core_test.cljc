@@ -12,6 +12,7 @@
               [:get  "/simple/:*"         :simple-catch]
               [:get  "/regex/:arg{\\d+}"  :regex]
               [:get  "/other/*"           :other-catch]
+              [:get  "/"                  :root]
               [:get  ":*"                 :catch-all]]))
 
 (defn match-single-uri [routes uri verb]
@@ -69,7 +70,11 @@
              :route-params {:* "42"}}
             {:route-handler :catch-all
              :route-params {:* "/simple/42"}}])
-        "Alternatives found")))
+        "Alternatives found"))
+
+  (is (= (match-single-uri routes "/" :get)
+         {:route-handler :root
+          :route-params {}})))
 
 (deftest uri-for-test
   (is (= (-> (uri-for routes :simple) :uri) "/simple")
