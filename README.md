@@ -26,7 +26,7 @@ Sibiro is:
 
 ## Usage ([API](https://aroemers.github.io/sibiro/))
 
-Add `[functionalbytes/sibiro "0.1.1"]` to your dependencies and make sure you have Clojars as one of your repositories.
+Add `[functionalbytes/sibiro "0.1.3"]` to your dependencies and make sure you have Clojars as one of your repositories.
 
 ### Defining routes
 
