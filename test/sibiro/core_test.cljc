@@ -13,6 +13,7 @@
               [:get  "/regex/:arg{\\d+}"  :regex]
               [:get  "/other/*"           :other-catch]
               [:get  "/"                  :root]
+              [:get  "/:arg"              :root-arg]
               [:get  ":*"                 :catch-all]]))
 
 (defn match-single-uri [routes uri verb]
@@ -96,6 +97,12 @@
 
   (is (try (not (uri-for routes :regex {:arg "foobar"}))
            (catch #?(:clj Throwable :cljs :default) t true))
-      "Illegal arguments throws an exception."))
+      "Illegal arguments throws an exception.")
+
+  (is (= (-> (uri-for routes :root) :uri) "/")
+      "Create a simple root URI.")
+
+  (is (= (-> (uri-for routes :root-arg {:arg "42"}) :uri) "/42")
+      "Create a parameterized root URI."))
 
 #?(:cljs (doo-tests 'sibiro.core-test))

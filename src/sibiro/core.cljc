@@ -95,22 +95,26 @@
      (let [parts  (path-parts path)
            keyset (set (map first (filter vector? parts)))
            data   (gensym)]
-       `(fn [~data]
-          (when-let [diff# (seq (reduce disj ~keyset (keys ~data)))]
-            (throw (ex-info "Missing data for path." {:missing-keys diff#})))
-          {:uri          (str ~@(->> (for [part parts
-                                           :let [key (first part)]]
-                                       (if (vector? part)
-                                         (if-let [re (second part)]
-                                           `(let [val# (get ~data ~key)]
-                                              (if (re-matches ~re val#)
-                                                (#'sibiro.core/url-encode val#)
-                                                (#'sibiro.core/throw-unmatched ~re ~key val#)))
-                                           `(#'sibiro.core/url-encode (get ~data ~key)))
-                                         part))
-                                     (interpose "/")))
-           :query-string (when-let [keys# (seq (reduce disj (set (keys ~data)) ~keyset))]
-                           (#'sibiro.core/query-string (select-keys ~data keys#)))}))))
+       (if (seq parts)
+         `(fn [~data]
+            (when-let [diff# (seq (reduce disj ~keyset (keys ~data)))]
+              (throw (ex-info "Missing data for path." {:missing-keys diff#})))
+            {:uri          (str ~@(->> (for [part parts
+                                             :let [key (first part)]]
+                                         (if (vector? part)
+                                           (if-let [re (second part)]
+                                             `(let [val# (get ~data ~key)]
+                                                (if (re-matches ~re val#)
+                                                  (#'sibiro.core/url-encode val#)
+                                                  (#'sibiro.core/throw-unmatched ~re ~key val#)))
+                                             `(#'sibiro.core/url-encode (get ~data ~key)))
+                                           part))
+                                       (interpose "/")))
+             :query-string (when-let [keys# (seq (reduce disj (set (keys ~data)) ~keyset))]
+                             (#'sibiro.core/query-string (select-keys ~data keys#)))})
+         `(fn [_#]
+            {:uri          "/"
+             :query-string ""})))))
 
 #?(:clj
    (defn- uri-for-fn [path]
@@ -123,22 +127,26 @@
    (defn- uri-for-fn [path]
      (let [parts  (path-parts path)
            keyset (set (map first (filter vector? parts)))]
-       (fn [data]
-         (when-let [diff (seq (reduce disj keyset (keys data)))]
-           (throw (ex-info "Missing data for path." {:missing-keys diff})))
-         {:uri          (apply str (->> (for [part parts]
-                                          (if (vector? part)
-                                            (let [key (first part)
-                                                  val (get data key)]
-                                              (if-let [re (second part)]
-                                                (if (re-matches re val)
-                                                  (url-encode val)
-                                                  (throw-unmatched re key val))
-                                                (url-encode val)))
-                                            part))
-                                        (interpose "/")))
-          :query-string (when-let [keys (seq (reduce disj (set (keys data)) keyset))]
-                          (query-string (select-keys data keys)))}))))
+       (if (seq parts)
+         (fn [data]
+           (when-let [diff (seq (reduce disj keyset (keys data)))]
+             (throw (ex-info "Missing data for path." {:missing-keys diff})))
+           {:uri          (apply str (->> (for [part parts]
+                                            (if (vector? part)
+                                              (let [key (first part)
+                                                    val (get data key)]
+                                                (if-let [re (second part)]
+                                                  (if (re-matches re val)
+                                                    (url-encode val)
+                                                    (throw-unmatched re key val))
+                                                  (url-encode val)))
+                                              part))
+                                          (interpose "/")))
+            :query-string (when-let [keys (seq (reduce disj (set (keys data)) keyset))]
+                            (query-string (select-keys data keys)))})
+         (fn [_]
+           {:uri          "/"
+            :query-string ""})))))
 
 (defn- routes-tags [routes opts]
   (reduce (fn [result [_ path handler tag]]
