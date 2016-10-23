@@ -16,7 +16,7 @@ Sibiro is:
 * a **simple**, bidirectional routing library
 * using **datastructures** for routes with [clout](https://github.com/weavejester/clout)-like URI patterns.
 * for **Clojure** and **ClojureScript**
-* that **compiles** to **fast matching** structures
+* that **compiles** to **fast matching** tree-like structures
 * where the **order** of the routes **does not matter**
 * returns **multiple matches lazily** using strict **precedence rules**
 * **separates routing** and **handling**
