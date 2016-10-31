@@ -74,6 +74,7 @@ For example:
 
 The values in `:route-params` are URL decoded for you.
 The value of `:alternatives` is lazy, so it won't search for alternatives if not requested.
+Note that the URI parameter should not contain a query string.
 
 ### Generating an URI
 
