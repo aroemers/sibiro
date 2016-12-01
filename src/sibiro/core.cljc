@@ -16,16 +16,17 @@
              :cljs (js/decodeURIComponent))))
 
 (defn- keyword-regex [string start]
-  (let [re-start (.indexOf string "{")
-        re-stop (.indexOf string "}")]
-    (if (<= 0 re-start)
+  (let [re-start (str/index-of string "{")
+        re-stop (str/index-of string "}")]
+    (if (and re-start re-stop)
       [(keyword (subs string start re-start)) (re-pattern (subs string (inc re-start) re-stop))]
       [(keyword (subs string start)) nil])))
 
 (defn- path-parts [path]
-  (map (fn [p] (cond (.startsWith p ":") (keyword-regex p 1)
-                     (.startsWith p "*") (keyword-regex p 0)
-                     :otherwise          p))
+  (map (fn [p] (cond
+                 (str/starts-with? p ":") (keyword-regex p 1)
+                 (str/starts-with? p "*") (keyword-regex p 0)
+                 :otherwise          p))
        (str/split path #"/")))
 
 
