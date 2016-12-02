@@ -7,7 +7,7 @@
             [lein-doo "0.1.6"]
             [lein-codox "0.9.4"]]
   :dependencies [[org.clojure/clojure "1.8.0"]]
-  :profiles {:test {:dependencies [[org.clojure/clojurescript "1.7.228"]
+  :profiles {:test {:dependencies [[org.clojure/clojurescript "1.8.51"]
                                    [doo "0.1.6"]]}}
   :cljsbuild {:builds {:test {:source-paths ["src" "test"]
                               :compiler {:output-to "target/sibiro.js"

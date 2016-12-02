@@ -26,7 +26,7 @@ Sibiro is:
 
 ## Usage ([API](https://aroemers.github.io/sibiro/))
 
-Add `[functionalbytes/sibiro "0.1.4"]` to your dependencies and make sure you have Clojars as one of your repositories.
+Add `[functionalbytes/sibiro "0.1.4"]` to your dependencies and make sure you have Clojars as one of your repositories. This library requires Clojure(Script) 1.8 or higher.
 
 ### Defining routes
 
