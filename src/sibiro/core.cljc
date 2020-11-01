@@ -1,38 +1,73 @@
 (ns sibiro.core
   "Core namespace for sibiro 2.0."
-  (:require [clojure.string :as str]
-            [sibiro.middleware :as middleware]
-            [sibiro.tag-matching :as tag]))
+  (:require [clojure.string :as str]))
 
-(defn not-found-handler
-  "Create a request handler that always returns a not-found response
-  with the given body."
-  [body]
-  (constantly {:status 404 :headers {} :body body}))
+(defprotocol RouteMatcher
+  (match-routes [routes request]))
 
-(defn wrap-routing
-  "Wrap the given handler by applying all middleware from the middleware
-  namespace around it. This supports the default routes datastructure.
-  Routes parameter must be derefable, e.g. a var."
-  [handler routes]
-  (-> handler
-      (middleware/wrap-handle-route)
-      (middleware/wrap-match-method)
-      (middleware/wrap-assoc-tag)
-      (middleware/wrap-match-uri)
-      (middleware/wrap-routes routes)))
+(defprotocol KeyMatcher
+  (match-key [key request]))
 
-(defn tag-matcher
-  "Creates a function that returns the URL for the given tagged route.
-  Data that is not used for the path is added as a query string,
-  unless with-query? is false (default is true). Routes parameter must
-  be derefable, e.g. a var."
+
+(extend-type clojure.lang.Var
+  RouteMatcher
+  (match-routes [routes request]
+    (match-routes @routes request)))
+
+(extend-type clojure.lang.PersistentVector
+  RouteMatcher
+  (match-routes [routes request]
+    (first (keep (fn [sub-routes]
+                   (match-routes sub-routes request))
+                 routes))))
+
+(extend-type clojure.lang.PersistentArrayMap
+  RouteMatcher
+  (match-routes [routes request]
+    (first (keep (fn [[matcher sub-routes]]
+                   (when-let [updated-request (match-key matcher request)]
+                     (match-routes sub-routes updated-request)))
+                 routes))))
+
+(extend-type clojure.lang.Fn
+  RouteMatcher
+  (match-routes [routes {:keys [uri path-params middleware]}]
+    (when (or (= uri "") (= uri "/"))
+      {:path-params path-params
+       :handler     routes
+       :middleware  middleware}))
+
+  KeyMatcher
+  (match-key [key request]
+    (update request :middleware conj key)))
+
+(extend-type clojure.lang.Keyword
+  RouteMatcher
+  (match-routes [routes {:keys [uri path-params middleware]}]
+    (when (or (= uri "") (= uri "/"))
+      {:path-params path-params
+       :handler     routes
+       :middleware  middleware}))
+
+  KeyMatcher
+  (match-key [key {:keys [request-method] :as request}]
+    (when (or (= key request-method)
+              (= key :any))
+      request)))
+
+(extend-type java.lang.String
+  KeyMatcher
+  (match-key [key {:keys [uri] :as request}]
+    (when (or (clojure.string/starts-with? uri (str "/" key "/"))
+              (= uri (str "/" key)))
+      (assoc request :uri (subs uri (inc (count key)))))))
+
+
+(defn handler 
+  "Create handler for the given routes structure. Can be a var."
   [routes]
-  (fn url-for-tag
-    ([tag]
-     (url-for-tag tag nil true))
-    ([tag data]
-     (url-for-tag tag data true))
-    ([tag data with-query?]
-     (let [tags (tag/find-tags-memoized @routes)]
-       (tag/url-for-tag* tags tag data with-query?)))))
+  (fn [request]
+    (if-let [{:keys [handler path-params middleware]} (match-routes routes request)]
+      (let [with-middleware (reduce #(%2 %1) handler middleware)]
+        (with-middleware request))
+      {:status 400 :body "not found"})))
