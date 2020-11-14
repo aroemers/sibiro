@@ -1,6 +1,7 @@
 (ns sibiro.core
   "Core namespace for sibiro 2.0."
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [sibiro.encoding :as encoding]))
 
 (defn- map-vals [f m]
   (reduce-kv (fn [a k v] (assoc a k (f v))) {} m))
@@ -33,7 +34,7 @@
   (match-key [key request]
     (when-let [value (second (str/split (:uri request) #"/"))]
       (-> request
-          (update :path-params assoc (first key) value)
+          (update :path-params assoc (first key) (encoding/url-decode value))
           (update :uri subs (inc (count value))))))
   (find-key [key {:keys [uri path-params]}]
     {:uri         (str "/" (first key) uri)
@@ -117,6 +118,7 @@
       ([handler data]
        (when-let [{:keys [uri path-params]} (get handlers handler)]
          {:uri (reduce-kv (fn [uri param _]
-                            (str/replace uri (str param) (get data param)))
+                            (str/replace uri (str param) (encoding/url-encode (get data param))))
                           uri
-                          path-params)})))))
+                          path-params)
+          :query-string (encoding/query-string (apply dissoc data (keys path-params)))})))))
