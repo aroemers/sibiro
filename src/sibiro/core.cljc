@@ -6,7 +6,7 @@
   (reduce-kv (fn [a k v] (assoc a k (f v))) {} m))
 
 (defprotocol RouteMatcher
-  (match-routes [routes request])
+  (match-request [routes request])
   (find-routes [routes]))
 
 (defprotocol KeyMatcher
@@ -15,16 +15,16 @@
 
 (extend-type clojure.lang.Var
   RouteMatcher
-  (match-routes [routes request]
-    (match-routes @routes request))
+  (match-request [routes request]
+    (match-request @routes request))
   (find-routes [routes]
     (find-routes @routes)))
 
 (extend-type clojure.lang.PersistentVector
   RouteMatcher
-  (match-routes [routes request]
+  (match-request [routes request]
     (first (keep (fn [sub-routes]
-                   (match-routes sub-routes request))
+                   (match-request sub-routes request))
                  routes)))
   (find-routes [routes]
     (apply merge (map find-routes routes)))
@@ -35,16 +35,16 @@
       (-> request
           (update :path-params assoc (first key) value)
           (update :uri subs (inc (count value))))))
-  (find-key [key request]
-    {:uri         (str "/" (first key) (:uri request))
-     :path-params (assoc (:path-params request) (first key) true)}))
+  (find-key [key {:keys [uri path-params]}]
+    {:uri         (str "/" (first key) uri)
+     :path-params (assoc path-params (first key) true)}))
 
 (extend-type clojure.lang.PersistentArrayMap
   RouteMatcher
-  (match-routes [routes request]
+  (match-request [routes request]
     (first (keep (fn [[matcher sub-routes]]
                    (when-let [updated-request (match-key matcher request)]
-                     (match-routes sub-routes updated-request)))
+                     (match-request sub-routes updated-request)))
                  routes)))
   (find-routes [routes]
     (reduce-kv (fn [a k v]
@@ -55,7 +55,7 @@
 
 (extend-type clojure.lang.Fn
   RouteMatcher
-  (match-routes [routes {:keys [uri path-params middleware]}]
+  (match-request [routes {:keys [uri path-params middleware]}]
     (when (or (= uri "") (= uri "/"))
       {:path-params path-params
        :handler     routes
@@ -72,7 +72,7 @@
 
 (extend-type clojure.lang.Keyword
   RouteMatcher
-  (match-routes [routes {:keys [uri path-params middleware]}]
+  (match-request [routes {:keys [uri path-params middleware]}]
     (when (or (= uri "") (= uri "/"))
       {:path-params path-params
        :handler     routes
@@ -99,11 +99,24 @@
     (update request :uri #(str "/" key %))))
 
 
-(defn handler
-  "Create handler for the given routes structure. Can be a var."
+(defn mk-handler
+  "Create a request handler for the given routes structure. Can be a var."
   [routes]
   (fn [request]
-    (if-let [{:keys [handler path-params middleware]} (match-routes routes request)]
+    (if-let [{:keys [handler path-params middleware]} (match-request routes request)]
       (let [with-middleware (reduce #(%2 %1) handler middleware)]
         (with-middleware (assoc request :path-params path-params)))
       {:status 404 :body "not found"})))
+
+(defn mk-reverser
+  "Create a request maker for the given routes structure. Can be a var, but is not dynamic."
+  [routes]
+  (let [handlers (find-routes routes)]
+    (fn reverser
+      ([handler] (reverser handler nil))
+      ([handler data]
+       (when-let [{:keys [uri path-params]} (get handlers handler)]
+         {:uri (reduce-kv (fn [uri param _]
+                            (str/replace uri (str param) (get data param)))
+                          uri
+                          path-params)})))))
