@@ -6,119 +6,140 @@
 (defn- map-vals [f m]
   (reduce-kv (fn [a k v] (assoc a k (f v))) {} m))
 
-(defprotocol RouteMatcher
-  (match-request [routes request])
-  (find-routes [routes]))
+(defrecord RouteMatch [handler path-params middleware])
 
-(defprotocol KeyMatcher
-  (match-key [key request])
-  (find-key [key request]))
+(defrecord HandlerRequest [handler path-params uri])
+
+(defprotocol RouteMatcher
+  (find-match [routes ring-request]
+    "Given a routes datastructure and a Ring request, return a
+    RouteMatch record if it can be matched.")
+  (find-handlers [routes]
+    "Given a routes datastructure, return a map of all handlers to
+    HandlerRequest records."))
+
+(defprotocol KeyHandler
+  (update-ring-request [key ring-request]
+    "Given a map key and a Ring request, updates the request according to
+    the type of the key.")
+  (update-handler-request [key handler-request]
+    "Given a map key and a HandlerRequest record, updates it according
+    to the type of the key."))
 
 (extend-type clojure.lang.Var
   RouteMatcher
-  (match-request [routes request]
-    (match-request @routes request))
-  (find-routes [routes]
-    (find-routes @routes)))
+  (find-match [routes ring-request]
+    (find-match @routes ring-request))
+  (find-handlers [routes]
+    (find-handlers @routes))
+
+  KeyHandler
+  (update-ring-request [key ring-request]
+    (update-ring-request @key ring-request))
+  (update-handler-request [key handler-request]
+    (update-handler-request @key handler-request)))
 
 (extend-type clojure.lang.PersistentVector
   RouteMatcher
-  (match-request [routes request]
-    (first (keep (fn [sub-routes]
-                   (match-request sub-routes request))
-                 routes)))
-  (find-routes [routes]
-    (apply merge (map find-routes routes)))
+  (find-match [routes ring-request]
+    (first (keep #(find-match % ring-request) routes)))
+  (find-handlers [routes]
+    (apply merge (map find-handlers routes)))
 
-  KeyMatcher
-  (match-key [key request]
-    (when-let [value (second (str/split (:uri request) #"/"))]
-      (-> request
-          (update :path-params assoc (first key) (encoding/url-decode value))
-          (update :uri subs (inc (count value))))))
-  (find-key [key {:keys [uri path-params]}]
-    {:uri         (str "/" (first key) uri)
-     :path-params (assoc path-params (first key) true)}))
+  KeyHandler
+  (update-ring-request [[param-key param-coerce-fn] {:keys [uri] :as ring-request}]
+    (when-let [value (second (str/split uri #"/"))]
+      (let [coerced (cond-> (encoding/url-decode value) param-coerce-fn param-coerce-fn)]
+        (-> ring-request
+            (update :path-params assoc param-key coerced)
+            (update :uri subs (inc (count value)))))))
+  (update-handler-request [[param-key param-coerce-fn] {:keys [uri path-params] :as handler-request}]
+    (assoc handler-request
+           :uri         (str "/" param-key uri)
+           :path-params (assoc path-params param-key param-coerce-fn))))
 
 (extend-type clojure.lang.PersistentArrayMap
   RouteMatcher
-  (match-request [routes request]
+  (find-match [routes ring-request]
     (first (keep (fn [[matcher sub-routes]]
-                   (when-let [updated-request (match-key matcher request)]
-                     (match-request sub-routes updated-request)))
+                   (when-let [updated-request (update-ring-request matcher ring-request)]
+                     (find-match sub-routes updated-request)))
                  routes)))
-  (find-routes [routes]
+  (find-handlers [routes]
     (reduce-kv (fn [a k v]
-                 (let [sub-routes (find-routes v)
-                       prefixed   (map-vals #(find-key k %) sub-routes)]
-                   (merge a prefixed)))
+                 (let [handler-reqs (find-handlers v)
+                       updated      (map-vals #(update-handler-request k %) handler-reqs)]
+                   (merge a updated)))
                {} routes)))
 
 (extend-type clojure.lang.Fn
   RouteMatcher
-  (match-request [routes {:keys [uri path-params middleware]}]
+  (find-match [routes {:keys [uri path-params middleware]}]
     (when (or (= uri "") (= uri "/"))
-      {:path-params path-params
-       :handler     routes
-       :middleware  middleware}))
-  (find-routes [routes]
-    {routes {:uri         ""
-             :path-params {}}})
+      (RouteMatch. routes path-params middleware)))
+  (find-handlers [routes]
+    {routes (HandlerRequest. routes {} "")})
 
-  KeyMatcher
-  (match-key [key request]
-    (update request :middleware conj key))
-  (find-key [key request]
-    request))
+  KeyHandler
+  (update-ring-request [key ring-request]
+    (update ring-request :middleware conj key))
+  (update-handler-request [key handler-request]
+    handler-request))
 
 (extend-type clojure.lang.Keyword
   RouteMatcher
-  (match-request [routes {:keys [uri path-params middleware]}]
+  (find-match [routes {:keys [uri path-params middleware]}]
     (when (or (= uri "") (= uri "/"))
-      {:path-params path-params
-       :handler     routes
-       :middleware  middleware}))
-  (find-routes [routes]
-    {routes {:uri         ""
-             :path-params {}}})
+      (RouteMatch. routes path-params middleware)))
+  (find-handlers [routes]
+    {routes (HandlerRequest. routes {} "")})
 
-  KeyMatcher
-  (match-key [key {:keys [request-method] :as request}]
+  KeyHandler
+  (update-ring-request [key {:keys [request-method] :as ring-request}]
     (when (or (= key request-method)
               (= key :any))
-      request))
-  (find-key [key request]
-    request))
+      ring-request))
+  (update-handler-request [key handler-request]
+    handler-request))
 
 (extend-type java.lang.String
-  KeyMatcher
-  (match-key [key {:keys [uri] :as request}]
+  KeyHandler
+  (update-ring-request [key {:keys [uri] :as ring-request}]
     (when (or (clojure.string/starts-with? uri (str "/" key "/"))
               (= uri (str "/" key)))
-      (assoc request :uri (subs uri (inc (count key))))))
-  (find-key [key request]
-    (update request :uri #(str "/" key %))))
+      (assoc ring-request :uri (subs uri (inc (count key))))))
+  (update-handler-request [key handler-request]
+    (update handler-request :uri #(str "/" key %))))
 
 
 (defn mk-handler
   "Create a request handler for the given routes structure. Can be a var."
   [routes]
   (fn [request]
-    (if-let [{:keys [handler path-params middleware]} (match-request routes request)]
+    (if-let [{:keys [handler path-params middleware]} (find-match routes request)]
       (let [with-middleware (reduce #(%2 %1) handler middleware)]
         (with-middleware (assoc request :path-params path-params)))
       {:status 404 :body "not found"})))
 
-(defn mk-reverser
-  "Create a request maker for the given routes structure. Can be a var, but is not dynamic."
+(defn mk-finder
+  "Create a request maker for the given routes structure. Can be a var,
+  but the available handlers are only calculated once."
   [routes]
-  (let [handlers (find-routes routes)]
-    (fn reverser
-      ([handler] (reverser handler nil))
+  (let [handlers (find-handlers routes)]
+    (fn finder
+      ([handler] (finder handler nil))
       ([handler data]
        (when-let [{:keys [uri path-params]} (get handlers handler)]
-         {:uri (reduce-kv (fn [uri param _]
-                            (str/replace uri (str param) (encoding/url-encode (get data param))))
-                          uri
-                          path-params)
-          :query-string (encoding/query-string (apply dissoc data (keys path-params)))})))))
+         {:uri
+          (reduce-kv (fn [uri param-key param-coerce-fn]
+                       (if-let [value (some-> (get data param-key) str)]
+                         (let [pattern (re-pattern (str "/" param-key "(/|$)"))]
+                           (when param-coerce-fn ; test coercion
+                             (param-coerce-fn value))
+                           (str/replace uri pattern (str "/" (encoding/url-encode value) "$1")))
+                         (throw (ex-info "missing URL parameter" {:param-key param-key}))))
+                     uri
+                     path-params)
+
+          :query-string
+          (encoding/query-string (apply dissoc data (keys path-params)))})))))
