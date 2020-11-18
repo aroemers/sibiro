@@ -26,7 +26,7 @@
     "Given a map key and a HandlerRequest record, updates it according
     to the type of the key."))
 
-(extend-type clojure.lang.Var
+(extend-type clojure.lang.IDeref
   RouteMatcher
   (find-match [routes ring-request]
     (find-match @routes ring-request))
