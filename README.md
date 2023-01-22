@@ -156,7 +156,7 @@ Master branch: [![Circle CI](https://circleci.com/gh/aroemers/sibiro/tree/master
 
 ## License
 
-Copyright © 2016 Functional Bytes
+Copyright © 2016-2023 Functional Bytes
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
